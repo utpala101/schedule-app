@@ -157,7 +157,8 @@ const Calendar = {
         const de = this.items.filter(e=>e.start&&e.start.slice(0,10)===ds);
         for (const ev of de) {
           const tp = this._topPx(ev,24,0,true);
-          html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:20px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+          const hp = this._hPx(ev,24,0,true);
+          html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
         }
         if(its) html+=this._timeHTML(24,0,true);
       } else {
@@ -168,7 +169,8 @@ const Calendar = {
           const eh = parseInt(ev.start.slice(11,13));
           if (eh>=ws && eh<we) {
             const tp = this._topPx(ev,we-ws,ws,false);
-            html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:20px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+            const hp = this._hPx(ev,we-ws,ws,false);
+            html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
           }
         }
         html+=`<div class="cal-fold-bar ${lc>0?'has-items':''}" onclick="Calendar._toggleExpand()" style="min-height:${fh}px;"><span class="fold-line"></span><span>${lc>0?'后 '+lc+' 项':'22:00-23:59'}</span><span class="fold-line"></span></div>`;
@@ -187,6 +189,18 @@ const Calendar = {
     if(abs) return (hr*60+mn)/(24*60)*(24*sh);
     if(hr<oh||hr>=oh+th) return 0;
     return ((hr-oh)*60+mn)/(th*60)*(th*sh) + foldH;
+  },
+  _hPx(ev,th,oh,abs) {
+    if (!ev.end) return 20;
+    const sh=40;
+    const sm=parseInt(ev.start.slice(11,13))*60+parseInt(ev.start.slice(14,16));
+    const em=parseInt(ev.end.slice(11,13))*60+parseInt(ev.end.slice(14,16));
+    const dur=Math.max(em-sm,0);
+    if (dur<=0) return 20;
+    if (abs) return Math.max(dur/(24*60)*(24*sh),18);
+    const ws=oh*60, we=(oh+th)*60;
+    const vs=Math.max(sm,ws), ve=Math.min(em,we);
+    return Math.max(Math.max(ve-vs,0)/(th*60)*(th*sh),18);
   },
   _countInRange(d,sh,eh) {
     const ds=d.toISOString().slice(0,10);
