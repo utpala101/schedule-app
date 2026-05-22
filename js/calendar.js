@@ -472,8 +472,12 @@ const Calendar = {
         const ev = this.items.find(i => i.id === id);
         if (ev) {
           if (date !== ev.start.slice(0,10)) {
-            ev.start = `${date}T${ev.start.slice(11)}`;
-            if (ev.end) ev.end = Calendar._locStr(new Date(new Date(ev.start).getTime() + new Date(ev.end) - new Date(ev.start)));
+            const oldStart = ev.start;
+            ev.start = `${date}T${oldStart.slice(11)}`;
+            if (ev.end) {
+              const dur = new Date(ev.end) - new Date(oldStart);
+              if (dur > 0) ev.end = Calendar._locStr(new Date(new Date(ev.start).getTime() + dur));
+            }
           } else if (parseInt(hour) !== parseInt(ev.start.slice(11,13))) {
             const oh = parseInt(ev.start.slice(11,13));
             ev.start = `${date}T${hour.padStart(2,'0')}:${ev.start.slice(14,16)}`;
