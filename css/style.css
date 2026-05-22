@@ -243,7 +243,10 @@ body::after {
 }
 .dark .cal-event:hover { filter: brightness(1.15); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .cal-event.cal-event-done { opacity: 0.35; text-decoration: line-through; }
-.cal-event.dragging { opacity: 0.4; box-shadow: 0 4px 16px rgba(0,0,0,0.12); pointer-events: none; }
+.cal-event.dragging {
+  opacity: 0.4; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  pointer-events: none; user-select: none;
+}
 
 /* ── Fold Bars ── */
 .cal-fold-bar {

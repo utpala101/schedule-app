@@ -420,6 +420,7 @@ const Calendar = {
     const onStart = (e) => {
       const ev = e.target.closest('.cal-event');
       if (!ev) return;
+      e.preventDefault();
       dragStartX = e.clientX;
       dragStartY = e.clientY;
       dragMoved = false;
