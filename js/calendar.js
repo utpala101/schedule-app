@@ -53,11 +53,14 @@ const Calendar = {
   },
 
   render() {
+    const {start,end}=this.getViewStartEnd();
+    this._recurClones=this._expandRecurring(this.items.filter(i=>i.recur?.type),start.toISOString().slice(0,10),end.toISOString().slice(0,10));
     this._startTimeIndicator();
     if (this.view === 'month') this.renderMonth();
     else if (this.view === 'week') this.renderWeek();
     else this.renderDay();
   },
+  _allItems() { return [...this.items,...(this._recurClones||[])]; },
 
   getViewStartEnd() {
     const d = new Date(this.currentDate);
@@ -95,11 +98,11 @@ const Calendar = {
       const ds = cur.toISOString().slice(0,10);
       const its = cur.toDateString()===today;
       const io = cur.getMonth()!==this.currentDate.getMonth();
-      const de = this.items.filter(e=>e.start&&e.start.slice(0,10)===ds);
+      const de = this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds);
       html += `<div class="cal-day-cell ${io?'other-month':''} ${its?'today':''}" data-date="${ds}"><div class="cal-day-num">${cur.getDate()}</div><div class="px-1">`;
       for (const ev of de.slice(0,3)) {
         const qc = QUAD_COLORS[ev.quadrant||0];
-        html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" style="position:static;margin-bottom:1px;border-left-color:${qc}" data-id="${ev.id}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+        html += `<div class="cal-event ${ev.completed?'cal-event-done':''}${ev._isRecurrence?' cal-event-recur':''}" style="position:static;margin-bottom:1px;border-left-color:${qc}" data-id="${ev.id}">${ev.completed?'✓ ':''}${ev.title}</div>`;
       }
       if (de.length>3) html += `<div class="text-xs text-gray-400 px-1">+${de.length-3}更多</div>`;
       html += `</div></div>`;
@@ -154,23 +157,23 @@ const Calendar = {
 
       if (this._expanded) {
         for(let h=0;h<24;h++) html+=`<div class="cal-time-slot" data-date="${ds}" data-hour="${h}"></div>`;
-        const de = this.items.filter(e=>e.start&&e.start.slice(0,10)===ds);
+        const de = this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds);
         for (const ev of de) {
           const tp = this._topPx(ev,24,0,true);
           const hp = this._hPx(ev,24,0,true);
-          html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+          html += `<div class="cal-event ${ev.completed?'cal-event-done':''}${ev._isRecurrence?' cal-event-recur':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
         }
         if(its) html+=this._timeHTML(24,0,true);
       } else {
         html+=`<div class="cal-fold-bar ${ec>0?'has-items':''}" onclick="Calendar._toggleExpand()" style="min-height:${fh}px;"><span class="fold-line"></span><span>${ec>0?'前 '+ec+' 项':'0:00-5:59'}</span><span class="fold-line"></span></div>`;
         for(let h=ws;h<we;h++) html+=`<div class="cal-time-slot" data-date="${ds}" data-hour="${h}"></div>`;
-        const de = this.items.filter(e=>e.start&&e.start.slice(0,10)===ds);
+        const de = this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds);
         for (const ev of de) {
           const eh = parseInt(ev.start.slice(11,13));
           if (eh>=ws && eh<we) {
             const tp = this._topPx(ev,we-ws,ws,false);
             const hp = this._hPx(ev,we-ws,ws,false);
-            html += `<div class="cal-event ${ev.completed?'cal-event-done':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+            html += `<div class="cal-event ${ev.completed?'cal-event-done':''}${ev._isRecurrence?' cal-event-recur':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
           }
         }
         html+=`<div class="cal-fold-bar ${lc>0?'has-items':''}" onclick="Calendar._toggleExpand()" style="min-height:${fh}px;"><span class="fold-line"></span><span>${lc>0?'后 '+lc+' 项':'22:00-23:59'}</span><span class="fold-line"></span></div>`;
@@ -204,7 +207,7 @@ const Calendar = {
   },
   _countInRange(d,sh,eh) {
     const ds=d.toISOString().slice(0,10);
-    return this.items.filter(e=>e.start&&e.start.slice(0,10)===ds).filter(e=>{const h=parseInt(e.start.slice(11,13)); return h>=sh&&h<eh;}).length;
+    return this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds).filter(e=>{const h=parseInt(e.start.slice(11,13)); return h>=sh&&h<eh;}).length;
   },
   _countRange(sd,sh,nd,eh) { let t=0; for(let i=0;i<nd;i++){const d=new Date(sd);d.setDate(d.getDate()+i);t+=this._countInRange(d,sh,eh);} return t; },
 
@@ -273,6 +276,7 @@ const Calendar = {
       const diff = new Date(item.end) - new Date(item.start);
       if (diff > 0) { durH = Math.floor(diff/3600000); durM = Math.round((diff%3600000)/60000); }
     }
+    const rec = item?.recur||{}; const rt=rec.type||'';
     return `
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
@@ -307,6 +311,26 @@ const Calendar = {
         <div><label class="block text-sm font-medium mb-1">标签（逗号分隔）</label><input id="fmTags" value="${tg}" placeholder="工作, 学习"></div>
         <div><label class="block text-sm font-medium mb-1">子任务（每行一个）</label><textarea id="fmSubtasks" rows="2" placeholder="子任务1\n子任务2">${sb}</textarea></div>
         <div><label class="block text-sm font-medium mb-1">备注</label><textarea id="fmNotes" rows="2" placeholder="自由文本备注...">${nt}</textarea></div>
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
+          <div class="flex items-center gap-2 mb-1">
+            <select id="fmRecurType" onchange="Calendar._toggleRecurFields()" class="text-xs py-1">
+              <option value="">不重复</option>
+              <option value="weekly" ${rt==='weekly'?'selected':''}>每周重复</option>
+              <option value="monthly" ${rt==='monthly'?'selected':''}>每月重复</option>
+            </select>
+          </div>
+          <div id="recurWeeklyFields" class="${rt==='weekly'?'':'hidden'} flex flex-wrap gap-x-2 gap-y-1 text-xs mb-1">
+            ${['日','一','二','三','四','五','六'].map((d,i)=>'<label class="flex items-center gap-0.5"><input type="checkbox" data-day="'+i+'" '+(rec.daysOfWeek?.includes(i)?'checked':'')+'>'+d+'</label>').join('')}
+          </div>
+          <div id="recurMonthlyFields" class="${rt==='monthly'?'':'hidden'} text-xs mb-1">
+            <label>每月第 <input type="number" id="fmRecurDay" min="1" max="28" value="${rec.dayOfMonth||1}" class="w-10"> 天</label>
+          </div>
+          <div id="recurIntervalSection" class="${rt?'':'hidden'} flex items-center gap-1 text-xs">
+            <label>每</label>
+            <input type="number" id="fmRecurInterval" min="1" max="12" value="${rec.interval||1}" class="w-10">
+            <span id="recurIntervalLabel">${rt==='monthly'?'月':'周'}</span>
+          </div>
+        </div>
         ${item ? `<div class="flex items-center gap-2 pt-1"><input type="checkbox" id="fmDone" ${done?'checked':''} class="w-4 h-4"><label for="fmDone" class="text-sm">标记为已完成</label></div>` : ''}
       </div>`;
   },
@@ -332,6 +356,7 @@ const Calendar = {
       dueDate: document.getElementById('fmDue').value || '',
       tags, subtasks,
       notes: document.getElementById('fmNotes').value.trim(),
+      recur: this._recurFromForm(),
       completed: document.getElementById('fmDone')?.checked || false
     };
   },
@@ -345,6 +370,72 @@ const Calendar = {
     const s=document.getElementById('fmStart')?.value;
     const h=parseInt(document.getElementById('fmDurH')?.value)||0, m=parseInt(document.getElementById('fmDurM')?.value)||0;
     if (s&&(h||m)) { const d=new Date(s); d.setHours(d.getHours()+h,d.getMinutes()+m); document.getElementById('fmEnd').value=Calendar._locStr(d); }
+  },
+
+  // ──────── Recurrence ────────
+  _toggleRecurFields() {
+    const t=document.getElementById('fmRecurType')?.value;
+    document.getElementById('recurWeeklyFields')?.classList.toggle('hidden',t!=='weekly');
+    document.getElementById('recurMonthlyFields')?.classList.toggle('hidden',t!=='monthly');
+    document.getElementById('recurIntervalSection')?.classList.toggle('hidden',!t);
+    document.getElementById('recurIntervalLabel').textContent = t==='monthly'?'月':'周';
+  },
+  _recurFromForm() {
+    const type = document.getElementById('fmRecurType')?.value;
+    if (!type) return null;
+    const interval = parseInt(document.getElementById('fmRecurInterval')?.value)||1;
+    const exceptions = [];
+    if (type === 'weekly') {
+      const days = [];
+      document.querySelectorAll('#recurWeeklyFields input[type=checkbox]').forEach(cb => { if(cb.checked) days.push(parseInt(cb.dataset.day)); });
+      if (!days.length) return null;
+      return { type, interval, daysOfWeek: days, exceptions };
+    }
+    if (type === 'monthly') {
+      const day = parseInt(document.getElementById('fmRecurDay')?.value)||1;
+      return { type, interval, dayOfMonth: Math.min(day,28), exceptions };
+    }
+    return null;
+  },
+  _isRecurInstance(id) {
+    const i=id.lastIndexOf('_'); if(i<=0) return null;
+    const ds=id.slice(i+1); if(!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return null;
+    const m=this.items.find(x=>x.id===id.slice(0,i));
+    return m&&m.recur?.type?{master:m,date:ds}:null;
+  },
+  _matchRecur(r, date, startDate) {
+    if (r.type==='weekly') {
+      if (!r.daysOfWeek?.includes(date.getDay())) return false;
+      if ((r.interval||1)>1) return Math.floor(Math.round((date-startDate)/86400000)/7)%r.interval===0;
+      return true;
+    }
+    if (r.type==='monthly') {
+      if (date.getDate()!==(r.dayOfMonth||1)) return false;
+      if ((r.interval||1)>1) return ((date.getFullYear()-startDate.getFullYear())*12+date.getMonth()-startDate.getMonth())%r.interval===0;
+      return true;
+    }
+    return false;
+  },
+  _expandRecurring(items, startStr, endStr) {
+    const clones=[]; const s=new Date(startStr+'T00:00:00'); const e=new Date(endStr+'T23:59:59');
+    for (const item of items) {
+      const r=item.recur; if(!r||!r.type) continue;
+      const is=new Date(item.start.slice(0,10)+'T00:00:00');
+      const ie=r.endDate?new Date(r.endDate+'T23:59:59'):null;
+      const ex=r.exceptions||[];
+      const rs=new Date(Math.max(s,is)); const re=ie?new Date(Math.min(e,ie)):e;
+      let cur=new Date(rs);
+      while(cur<=re){
+        const ds=cur.toISOString().slice(0,10);
+        if(!ex.includes(ds)&&this._matchRecur(r,cur,is)){
+          clones.push({...item,id:item.id+'_'+ds,_masterId:item.id,_instanceDate:ds,_isRecurrence:true,
+            start:ds+'T'+item.start.slice(11),
+            end:item.end?ds+'T'+item.end.slice(11):''});
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+    }
+    return clones;
   },
 
   createEvent(date, hour) {
@@ -370,12 +461,14 @@ const Calendar = {
   },
 
   editEvent(id) {
-    const item = this.items.find(i=>i.id===id);
+    // Check if this is a recurring instance
+    const ri = this._isRecurInstance(id);
+    const item = ri ? ri.master : this.items.find(i=>i.id===id);
     if (!item) return;
     const html = this._itemFormHTML(item, '编辑') + `<div class="flex gap-2 mt-4">
       <button id="fmSave" class="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">保存</button>
       <button id="fmDelete" class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">删除</button>
-      <button id="fmCancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+      <button id="fmCancel" class="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
     </div>`;
     this.showModal(html);
     document.getElementById('fmSave').onclick = async () => {
@@ -387,12 +480,51 @@ const Calendar = {
       document.getElementById('modalOverlay').classList.add('hidden'); this.render();
     };
     document.getElementById('fmDelete').onclick = async () => {
+      if (ri) { this._deleteRecurring(item, ri.date); return; }
       if (!(await Calendar.showConfirm('确定要删除此项？'))) return;
-      await DB.del('items', id);
-      this.items = this.items.filter(i=>i.id!==id);
+      await DB.del('items', item.id);
+      this.items = this.items.filter(i=>i.id!==item.id);
       document.getElementById('modalOverlay').classList.add('hidden'); this.render();
     };
     document.getElementById('fmCancel').onclick = () => document.getElementById('modalOverlay').classList.add('hidden');
+  },
+
+  _deleteRecurring(item, instanceDate) {
+    this.showModal(`
+      <h3 class="text-lg font-bold mb-3">删除重复日程</h3>
+      <p class="text-sm text-gray-500 mb-3">${instanceDate} 的"${item.title}"</p>
+      <div class="space-y-2">
+        <button id="delThis" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 text-left">仅删除本次</button>
+        <p class="text-xs text-gray-400 -mt-1">仅移除 ${instanceDate} 的日程，后续重复保留</p>
+        <button id="delFuture" class="w-full px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 text-left">删除本次及之后</button>
+        <p class="text-xs text-gray-400 -mt-1">删除 ${instanceDate} 及之后所有重复</p>
+        <button id="delAll" class="w-full px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-left">删除全部</button>
+        <p class="text-xs text-gray-400 -mt-1">删除此重复日程的所有实例</p>
+        <button id="delCancel" class="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+      </div>`);
+    document.getElementById('delThis').onclick = async () => {
+      item.recur.exceptions = [...(item.recur.exceptions||[]), instanceDate];
+      await DB.put('items', item);
+      this.items = (await DB.getAll('items')).filter(i=>i.start);
+      document.getElementById('modalOverlay').classList.add('hidden'); this.render();
+    };
+    document.getElementById('delFuture').onclick = async () => {
+      // Split at this date: keep original events before, end series here
+      const d = new Date(instanceDate+'T00:00:00');
+      d.setDate(d.getDate()-1);
+      item.recur.endDate = d.toISOString().slice(0,10);
+      // Also add this instance to exceptions
+      item.recur.exceptions = [...(item.recur.exceptions||[]), instanceDate];
+      await DB.put('items', item);
+      this.items = (await DB.getAll('items')).filter(i=>i.start);
+      document.getElementById('modalOverlay').classList.add('hidden'); this.render();
+    };
+    document.getElementById('delAll').onclick = async () => {
+      await DB.del('items', item.id);
+      this.items = this.items.filter(i=>i.id!==item.id);
+      document.getElementById('modalOverlay').classList.add('hidden'); this.render();
+    };
+    document.getElementById('delCancel').onclick = () => document.getElementById('modalOverlay').classList.add('hidden');
   },
 
   // ──────── Shared ────────

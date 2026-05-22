@@ -252,6 +252,7 @@ const Todo = {
       const diff = new Date(item.end) - new Date(item.start);
       if (diff > 0) { durH = Math.floor(diff/3600000); durM = Math.round((diff%3600000)/60000); }
     }
+    const rec = item?.recur||{}; const rt=rec.type||'';
     return `
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
@@ -286,6 +287,26 @@ const Todo = {
         <div><label class="block text-sm font-medium mb-1">标签（逗号分隔）</label><input id="fmTags" value="${tg}" placeholder="工作, 学习"></div>
         <div><label class="block text-sm font-medium mb-1">子任务（每行一个）</label><textarea id="fmSubtasks" rows="2" placeholder="子任务1\n子任务2">${sb}</textarea></div>
         <div><label class="block text-sm font-medium mb-1">备注</label><textarea id="fmNotes" rows="2" placeholder="自由文本备注...">${nt}</textarea></div>
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
+          <div class="flex items-center gap-2 mb-1">
+            <select id="fmRecurType" onchange="Calendar._toggleRecurFields()" class="text-xs py-1">
+              <option value="">不重复</option>
+              <option value="weekly" ${rt==='weekly'?'selected':''}>每周重复</option>
+              <option value="monthly" ${rt==='monthly'?'selected':''}>每月重复</option>
+            </select>
+          </div>
+          <div id="recurWeeklyFields" class="${rt==='weekly'?'':'hidden'} flex flex-wrap gap-x-2 gap-y-1 text-xs mb-1">
+            ${['日','一','二','三','四','五','六'].map((d,i)=>'<label class="flex items-center gap-0.5"><input type="checkbox" data-day="'+i+'" '+(rec.daysOfWeek?.includes(i)?'checked':'')+'>'+d+'</label>').join('')}
+          </div>
+          <div id="recurMonthlyFields" class="${rt==='monthly'?'':'hidden'} text-xs mb-1">
+            <label>每月第 <input type="number" id="fmRecurDay" min="1" max="28" value="${rec.dayOfMonth||1}" class="w-10"> 天</label>
+          </div>
+          <div id="recurIntervalSection" class="${rt?'':'hidden'} flex items-center gap-1 text-xs">
+            <label>每</label>
+            <input type="number" id="fmRecurInterval" min="1" max="12" value="${rec.interval||1}" class="w-10">
+            <span id="recurIntervalLabel">${rt==='monthly'?'月':'周'}</span>
+          </div>
+        </div>
         ${item ? `<div class="flex items-center gap-2 pt-1"><input type="checkbox" id="fmDone" ${item.completed?'checked':''} class="w-4 h-4"><label for="fmDone" class="text-sm">标记为已完成</label></div>` : ''}
       </div>`;
   },
@@ -310,6 +331,7 @@ const Todo = {
       dueDate: document.getElementById('fmDue').value || '',
       tags, subtasks: subs,
       notes: document.getElementById('fmNotes').value.trim(),
+      recur: Calendar._recurFromForm(),
       completed: document.getElementById('fmDone')?.checked || false
     };
   },
