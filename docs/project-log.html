@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>构建手记 · 日程工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   Warm Studio — 手账质感记录页
+   ═══════════════════════════════════════ */
+
+:root {
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', serif;
+  --font-sans: 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-bg: #f6f1ea;
+  --color-surface: #ffffff;
+  --color-text: #2a2117;
+  --color-text-secondary: #8c7e6e;
+  --color-primary: #c4523c;
+  --color-primary-light: #fdf2ed;
+  --color-border: #e6ddd0;
+  --color-accent: #d4a853;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03);
+  --width-content: 720px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.75;
+  padding: 48px 24px 120px;
+}
+
+/* Paper texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.04) 1px, rgba(0,0,0,0.04) 2px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 3px);
+}
+
+.container {
+  max-width: var(--width-content);
+  margin: 0 auto;
+}
+
+/* ─── Header ─── */
+header {
+  text-align: center;
+  margin-bottom: 56px;
+  animation: fadeUp 0.7s ease-out;
+}
+
+header .label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding: 4px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: 20px;
+}
+
+header h1 {
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  margin-bottom: 12px;
+}
+
+header .subtitle {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  font-weight: 300;
+}
+
+header .meta {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ─── Section ─── */
+section {
+  margin-bottom: 48px;
+  animation: fadeUp 0.6s ease-out both;
+}
+section:nth-child(1) { animation-delay: 0.1s; }
+section:nth-child(2) { animation-delay: 0.2s; }
+section:nth-child(3) { animation-delay: 0.3s; }
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title .num {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  font-weight: 400;
+}
+
+.section-divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent), transparent);
+  margin-bottom: 20px;
+  border-radius: 1px;
+}
+
+.section-desc {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* ─── Bug Card ─── */
+.bug-card {
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 28px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  transition: box-shadow 0.25s, transform 0.2s;
+  position: relative;
+}
+
+.bug-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.bug-card .tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.tag-bug { background: #fef2ee; color: #c4523c; }
+.tag-lesson { background: #f0f7ee; color: #3a8c6a; }
+.tag-perf { background: #f0f4ff; color: #3b6ef6; }
+.tag-arch { background: #fffbeb; color: #b8860b; }
+
+.bug-card h3 {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.bug-card .sub {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.bug-card .symptom {
+  background: rgba(196,82,60,0.06);
+  border-left: 3px solid var(--color-primary);
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.bug-card .cause {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: #faf7f2;
+  border-radius: 8px;
+}
+
+.dark .bug-card .cause { background: #2a241e; }
+
+.cause-label {
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.bug-card .fix {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bug-card .code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: #faf7f2;
+  padding: 12px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 10px 0;
+  line-height: 1.6;
+  border: 1px solid #eee;
+}
+
+.dark .bug-card .code { background: #2a241e; border-color: #353025; }
+
+.bug-card .code .comment { color: #8c7e6e; }
+.bug-card .code .keyword { color: #c4523c; font-weight: 500; }
+.bug-card .code .string { color: #3a6e8c; }
+
+/* ─── Principle Box ─── */
+.principle-box {
+  background: linear-gradient(135deg, #fdf2ed, #fef9f5);
+  border: 1px solid #fad4c8;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+}
+
+.principle-box h4 {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: var(--color-primary);
+}
+
+.principle-box p { font-size: 14px; line-height: 1.7; }
+
+/* ─── Timeline ─── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+  animation: fadeUp 0.5s ease-out both;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+}
+.timeline-item .time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+.timeline-item p { font-size: 14px; margin-top: 2px; }
+
+/* ─── Stats Grid ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+.stat-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.stat-item .num {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+.stat-item .label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Footer ─── */
+footer {
+  text-align: center;
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+footer a { color: var(--color-primary); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  body { padding: 24px 16px 80px; }
+  header h1 { font-size: 1.8rem; }
+  .bug-card { padding: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="label">Project Log</div>
+  <h1>构建「日程工作台」<br>避坑手记</h1>
+  <p class="subtitle">一个纯前端 SPA 从零到产品级的过程中，那些值得记住的教训</p>
+  <div class="meta">2026.05.22 &nbsp;·&nbsp; 全程约 6 小时 &nbsp;·&nbsp; 10 个文件 &nbsp;·&nbsp; ~1500 行代码</div>
+</header>
+
+<!-- ═══ STATS ═══ -->
+<div class="stats-grid">
+  <div class="stat-item"><div class="num">10</div><div class="label">JS 文件</div></div>
+  <div class="stat-item"><div class="num">9</div><div class="label">已修复 Bug</div></div>
+  <div class="stat-item"><div class="num">504</div><div class="label">CSS 行数</div></div>
+  <div class="stat-item"><div class="num">3</div><div class="label">重构次数</div></div>
+</div>
+
+<!-- ═══ SECTION 1: Data Architecture ═══ -->
+<section>
+  <div class="section-title"><span class="num">01</span> 数据架构</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">从两个独立 store 到统一数据模型的演进过程，以及迁移中踩的坑。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-arch">数据建模</span>
+    <h3>分而治之的代价</h3>
+    <p class="sub">events + todos → 统一 items</p>
+    <div class="symptom">一开始把「日程事件」和「待办事项」分成两个独立 store。结果用户需要在日历中给事件加象限、在待办中给任务加时间——功能越加，两边需要同步的数据越多。</div>
+    <div class="cause"><span class="cause-label">根因</span> 数据模型没有预见「一件事可以同时是日程和待办」的需求。</div>
+    <div class="fix">
+      <strong>教训</strong>：当一个实体在 UI 不同视图中有不同呈现方式时，底层数据应统一。合并后每个 item：
+      <div class="code"><span class="comment">// 统一 items 结构</span>
+{ id, title, <span class="keyword">start</span>, <span class="keyword">end</span>,       <span class="comment">// 有时间 → 上日程</span>
+  <span class="keyword">quadrant</span>, <span class="keyword">dueDate</span>,   <span class="comment">// 有象限 → 进四象限</span>
+  tags, subtasks, <span class="keyword">notes</span>,
+  <span class="keyword">completed</span>, created }</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">迁移陷阱</span>
+    <h3>IndexedDB 版本升级千万别删旧 store</h3>
+    <p class="sub">v1 → v2 迁移时数据丢失</p>
+    <div class="symptom">升级 IndexedDB 版本号、在 <code>onupgradeneeded</code> 中删除旧 store 并创建新 store——然后旧数据全没了。</div>
+    <div class="cause"><span class="cause-label">根因</span> <code>onupgradeneeded</code> 中无法简单读取旧 store 内容再写入新 store，<code>getAll()</code> 是异步的而升级事务在同步上下文中。</div>
+    <div class="fix">
+      <strong>正确做法</strong>：保留旧 store，在应用层的 <code>read()</code> 方法中检测旧格式并迁移：
+      <div class="code"><span class="comment">// 读取时检测旧格式，迁移一次，然后持久化新格式</span>
+<span class="keyword">async</span> read() {
+  <span class="keyword">let</span> data = <span class="keyword">await</span> this._readFile();
+  <span class="keyword">if</span> (data.events || data.todos) {
+    data.items = this._migrate(data); <span class="comment">// 应用层迁移</span>
+    <span class="keyword">delete</span> data.events; <span class="keyword">delete</span> data.todos;
+    <span class="keyword">await</span> this.write(data); <span class="comment">// 持久化新格式</span>
+  }
+  <span class="keyword">return</span> data;
+}</div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：数据格式向前兼容</h4>
+    <p>持久化层不应假设数据格式固定不变。每次 <code>read()</code> 都是迁移机会。用应用层代码处理格式转换，比在 IndexedDB 升级回调中安全得多。</p>
+  </div>
+</section>
+
+<!-- ═══ SECTION 2: Async Pitfalls ═══ -->
+<section>
+  <div class="section-title"><span class="num">02</span> async 陷阱</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">JavaScript 中两个最常见的 async 相关 bug——都发生在「看起来像异步但实际不是」的地方。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">致命陷阱</span>
+    <h3>同步函数调 .then()，静默崩溃</h3>
+    <p class="sub">应用最大的一个 bug 只需要加一个 async 关键字</p>
+    <div class="symptom">在待办列表切换日期、或在日历创建事件后切到待办——数据不刷新。必须手动刷新页面。持续了整整 6 个版本未能定位。</div>
+    <div class="cause">
+      <span class="cause-label">根因</span>
+      <code>DB.getAll('items')</code> 返回的是普通数组，不是 Promise。代码中写 <code>.then(items => ...)</code>——数组没有 <code>.then()</code>，抛出 TypeError，渲染函数从未执行。
+    </div>
+    <div class="fix">
+      一行修复：
+      <div class="code"><span class="comment">// before</span>
+getAll(store) { <span class="keyword">return</span> [...(this.data[store] || [])]; }
+<span class="comment">// after — async 让返回值自动变成 Promise</span>
+<span class="keyword">async</span> getAll(store) { <span class="keyword">return</span> [...(this.data[store] || [])]; }</div>
+      <div style="margin-top:8px">
+      <strong>为什么这么难发现</strong>：因为初次加载时 <code>Todo.init()</code> 直接调 <code>this.render()</code> 正常渲染。只有视图切换时的 <code>.then()</code> 路径才会触发 bug。页面刷新正常 → 用户以为是自己操作不对。
+      </div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-lesson">设计教训</span>
+    <h3>dispatchEvent 是同步的，async listener 不是</h3>
+    <p class="sub">跨模块同步的微妙时序</p>
+    <div class="symptom">用 <code>document.dispatchEvent(new CustomEvent(...))</code> 做跨模块同步，但 listener 是 <code>async</code> 函数。dispatchEvent 后 listener 还没执行完，调用方已经继续往下走了。</div>
+    <div class="cause"><span class="cause-label">根因</span> <code>dispatchEvent</code> 调用 listener 本身是同步的，但如果 listener 是 <code>async</code>，里面的 <code>await</code> 会让后续代码变成微任务延迟执行。</div>
+    <div class="fix">
+      <strong>经验</strong>：跨模块同步最稳妥的方式——切换视图时直接读取最新数据，不依赖事件驱动的异步传播：
+      <div class="code"><span class="comment">// 可靠的方式：切到待办视图时直接取最新数据</span>
+<span class="keyword">if</span> (view === 'todo') {
+  Todo.currentDate = <span class="keyword">new</span> Date();
+  <span class="keyword">const</span> items = <span class="keyword">await</span> DB.getAll('items');
+  Todo.items = items;
+  Todo.render();
+}</div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：视图切换是天然的同步点</h4>
+    <p>不要依赖异步事件传播来保持数据一致性。在视图切换这个「同步窗口」里直接读取最新持久化数据，简单可靠。</p>
+  </div>
+</section>
+
+<!-- ═══ SECTION 3: DOM & Layout ═══ -->
+<section>
+  <div class="section-title"><span class="num">03</span> DOM 与布局</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">前端开发中 DOM 操作和布局计算相关的常见陷阱。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">布局偏移</span>
+    <h3>绝对定位元素忘记算兄弟元素高度</h3>
+    <p class="sub">26px 的折叠条引发的偏位灾难</p>
+    <div class="symptom">在周/日视图中，事件总是显示在比实际时间早一个小时的位置。点击 17:00 的格子创建事件，却出现在 16:00 的位置。点击事件编辑，保存后跑到了 15:00。</div>
+    <div class="cause">
+      <span class="cause-label">根因</span>
+      折叠条（26px）是正常流布局的块级元素，占用了垂直空间。但事件的 <code>top</code> 值从容器顶部（0px）计算，没有把折叠条的高度 +26px。结果每个事件都偏上 26px。
+    </div>
+    <div class="fix">
+      <div class="code"><span class="comment">// 非展开模式时，事件 top 要加上折叠条高度</span>
+_topPx(ev, th, oh, abs) {
+  <span class="keyword">const</span> foldH = 26;  <span class="comment">// ← 忘记这个常数导致偏位</span>
+  <span class="keyword">if</span> (abs) <span class="keyword">return</span> (hr*60+mn)/(24*60)*(24*sh);
+  <span class="keyword">return</span> ((hr-oh)*60+mn)/(th*60)*(th*sh) + foldH;
+}</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">事件系统</span>
+    <h3>mouseup 的 target 不是你以为的那个</h3>
+    <p class="sub">拖拽释放时找不到目标元素</p>
+    <div class="symptom">拖拽日历事件到目标时间槽释放，事件没有移动。每次都要拖到更下面一个槽才能生效。</div>
+    <div class="cause">
+      <span class="cause-label">根因</span>
+      事件绝对定位在时间槽上方（z-index: 10）。<code>mouseup</code> 的目标是拖拽中的事件元素本身。<code>e.target.closest('.cal-time-slot')</code> 往祖先链找——事件和槽是兄弟关系，不是父子关系，永远找不到。
+    </div>
+    <div class="fix">
+      方案转向：<code>mouseover</code> → <code>mousemove + elementsFromPoint</code>
+      <div class="code"><span class="comment">// 不用 closest，用元素碰撞检测</span>
+<span class="keyword">const</span> getSlotAtPoint = (x, y) => {
+  <span class="keyword">const</span> els = document.elementsFromPoint(x, y);
+  <span class="keyword">return</span> els.find(el => el.classList.contains('cal-time-slot'));
+};</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-perf">性能</span>
+    <h3>渲染时重复注册 document 监听器</h3>
+    <p class="sub">隐藏在「每次都正常执行」表象下的内存泄漏</p>
+    <div class="symptom">反复拖拽和添加日程后，页面越来越卡。最终需要关闭标签页重新打开。</div>
+    <div class="cause">
+      <span class="cause-label">根因</span>
+      <code>initDragDrop()</code> 在每次 <code>_renderWeekDay()</code> 中被调用。每次调用注册 4 个 <code>document</code> 监听器。拖拽 50 次 = 200 个事件的 listener 堆积。
+    </div>
+    <div class="fix">
+      <div class="code"><span class="comment">// 守卫模式：仅注册一次</span>
+initDragDrop() {
+  <span class="keyword">if</span> (this._dragInitDone) <span class="keyword">return</span>;
+  this._dragInitDone = <span class="keyword">true</span>;
+  document.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  <span class="comment">// ...</span>
+}</div>
+      <div style="margin-top:8px">
+      <strong>教训</strong>：<code>document</code> 级别的监听器一定要只在初始化时注册一次。在渲染函数中注册相当于每次重绘都"加一层"，永远不会释放。
+      </div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-perf">优化</span>
+    <h3>setInterval 驱动的全量重渲染</h3>
+    <p class="sub">每分钟重建整个日历 DOM</p>
+    <div class="symptom">为了实现「当前时间指示线每分钟刷新」，直接调用了 <code>this.render()</code>——完全重建日历视图的 HTML。60s 一次，加上用户操作触发的渲染，DOM 频繁大换血。</div>
+    <div class="fix">
+      改为仅有针对性的 DOM 更新：
+      <div class="code"><span class="comment">// 不渲染整个视图，只移动指示线的 top</span>
+<span class="keyword">const</span> ind = document.querySelector('.cal-time-indicator');
+<span class="keyword">if</span> (!ind) { this.render(); <span class="keyword">return</span>; }
+ind.style.top = newTop + 'px';  <span class="comment">// 一次 repaint 搞定</span></div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：最小更新原则</h4>
+    <p>每次 <code>innerHTML = html</code> 都会销毁重建所有 DOM 节点、丢失所有内部状态。能改一个 <code>style.top</code> 就不要调 render。能用 <code>elementsFromPoint</code> 就不要用 <code>closest</code>。能渲染一次就不要在渲染函数里绑监听器。</p>
+  </div>
+</section>
+
+<!-- ═══ SECTION 4: State Management ═══ -->
+<section>
+  <div class="section-title"><span class="num">04</span> 状态同步</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">模块间共享状态时的数据流管理。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">状态丢失</span>
+    <h3>Object.assign 把 completed 吃了</h3>
+    <p class="sub">编辑表单没有完成状态字段，保存时就把原来的完成状态覆盖了</p>
+    <div class="symptom">把一个待办标记为完成，然后编辑它的标题——保存后待办变成未完成。用户需要重新勾选。</div>
+    <div class="cause"><span class="cause-label">根因</span> <code>_readForm()</code> 总是返回 <code>completed: false</code>（创建表单没有完成选项）。<code>Object.assign(item, data)</code> 用这个 <code>false</code> 覆盖了 <code>item.completed</code> 原有的 <code>true</code>。</div>
+    <div class="fix">
+      两个方向的修复：
+      <div class="code"><span class="comment">// 方案 A：编辑时保留旧值</span>
+<span class="keyword">const</span> was = item.completed;
+Object.assign(item, data);
+item.completed = was;
+
+<span class="comment">// 方案 B：编辑表单里加一个「已完成」复选框（最终方案）</span>
+<span class="keyword">if</span> (item) html += `&lt;input type="checkbox" id="fmDone" ${item.completed?'checked':''}&gt;`;</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-lesson">视图切换</span>
+    <h3>刷新后永远回到日历页</h3>
+    <p class="sub">单页应用需要记住用户上一次在哪个视图</p>
+    <div class="symptom">用户切换到待办页、浏览数据，不小心刷新页面——回到日历。每次都要手动切回去。</div>
+    <div class="fix">
+      <div class="code"><span class="comment">// 保存当前视图到 localStorage</span>
+<span class="keyword">function</span> switchView(view) {
+  <span class="comment">// ...</span>
+  localStorage.setItem('lastView', view);
+}
+<span class="comment">// 启动时恢复</span>
+<span class="keyword">const</span> savedView = localStorage.getItem('lastView') || 'calendar';
+switchView(savedView);</div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：单页应用的"记忆"策略</h4>
+    <p>localStorage 是 SPA 最好的"记忆体"——记住用户的视图偏好、工作时段设置、主题选择。每次关键操作都同步写入。</p>
+  </div>
+</section>
+
+<!-- ═══ SECTION 5: UI Details ═══ -->
+<section>
+  <div class="section-title"><span class="num">05</span> UI 细节</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">用户体验层面容易被忽略的小问题。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-bug">交互冲突</span>
+    <h3>拖拽时选中文字</h3>
+    <p class="sub">mousedown 默认行为触发了文本选择</p>
+    <div class="symptom">拖拽日程事件时，页面上出现选中高亮，体验极差。</div>
+    <div class="fix"><div class="code">onStart = (e) => {
+  e.preventDefault();  <span class="comment">// 一行解决</span>
+  dragEl = ev;
+};</div></div>
+  </div>
+
+  <div class="bug-card">
+    <span class="tag tag-lesson">UX 改进</span>
+    <h3>删除确认框的「原生感」问题</h3>
+    <p class="sub">浏览器 confirm() 的外观和行为与页面风格割裂</p>
+    <div class="symptom"><code>confirm('删除此待办？')</code> 弹出的对话框在页面最顶端，样式不匹配，且阻塞了 JavaScript 执行。</div>
+    <div class="fix">
+      用 Promise + 自定义 Modal 替代：
+      <div class="code"><span class="comment">// 返回 Promise，调用方 await</span>
+showConfirm(msg) {
+  <span class="keyword">return new</span> Promise(resolve => {
+    this.showModal(`...`);
+    document.getElementById('confirmYes').onclick = () => { hide(); resolve(<span class="keyword">true</span>); };
+    document.getElementById('confirmNo').onclick = () => { hide(); resolve(<span class="keyword">false</span>); };
+  });
+}</div>
+      <div style="margin-top:8px">设计上：居中弹出、红色警告图标、匹配主题色、不阻塞页面渲染。</div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：永远不要用浏览器原生弹窗</h4>
+    <p><code>alert()</code>、<code>confirm()</code>、<code>prompt()</code> 在 2026 年的网页里没有任何存在的理由。它们的外观不可控、行为阻塞、用户不信任。所有弹窗都应该是页面内自定义的。</p>
+  </div>
+</section>
+
+<!-- ═══ SECTION 6: Timeline ═══ -->
+<section>
+  <div class="section-title"><span class="num">06</span> 修复时间线</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">按时间顺序回顾今天的 bug 发现与修复过程。</p>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="time">Stage 1</div>
+      <p>暗色模式不生效 — Tailwind CDN 默认 <code>darkMode: 'media'</code>，手动添加 <code>tailwind.config = { darkMode: 'class' }</code></p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 2</div>
+      <p>暗色模式还是不生效 — Tailwind CDN 加载时机不可控，改为纯 CSS .dark 选择器覆盖所有 Tailwind 类</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 3</div>
+      <p>日/周视图从 0 点开始，每次要下拉 — 折叠非工作时段（6:00-22:00），加折叠条和展开按钮</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 4</div>
+      <p>点击左上日期搜索报错 — 动态创建 input 的清理问题，改为静态隐藏 input 复用</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 5</div>
+      <p>数据模型重构 — events + todos → 统一 items store，迁移旧数据</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 6</div>
+      <p>拖拽偏位 + 文字选中 — <code>elementsFromPoint</code> + <code>e.preventDefault()</code></p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 7</div>
+      <p>事件显示偏一小时 — 折叠条 26px 高度没算进事件定位</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 8</div>
+      <p><strong>最大 bug</strong>：视图切换时数据不刷新 — 同步函数 <code>getAll</code> 调 <code>.then()</code> 静默崩溃。加 <code>async</code> 解决。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 9</div>
+      <p>卡顿——render 重复注册 listener + 60s 全量渲染。改为守卫 + 定向更新。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 10</div>
+      <p>美观度提升 — Warm Studio 配色 + 纸纹 + 动画 + 字体</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SECTION 7: Cheat Sheet ═══ -->
+<section>
+  <div class="section-title"><span class="num">07</span> 快速检查清单</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">下次写类似应用时，在提交前逐条检查。</p>
+
+  <div class="bug-card" style="padding:20px 28px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>所有 `getAll` 是否加了 `async`？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>document 监听器是否只注册一次？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>绝对定位元素有没有漏算偏移量？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>拖拽释放时 `closest` 能找到目标吗？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>Object.assign 有没有吞掉已有字段？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>视图切换时是否从 DB 刷新数据？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>定时器更新用最小 DOM 操作？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>有没有遗漏的 `confirm()`？</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  构建记录 · 日程工作台 · 2026
+</footer>
+
+</div>
+</body>
+</html>

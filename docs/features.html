@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日程工作台 · 功能介绍</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-serif: 'Noto Serif SC', serif;
+  --font-sans: 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --warm-bg: #f6f1ea;
+  --warm-surface: #ffffff;
+  --warm-text: #2a2117;
+  --warm-secondary: #8c7e6e;
+  --warm-primary: #c4523c;
+  --warm-primary-light: #fdf2ed;
+  --warm-border: #e6ddd0;
+  --warm-accent: #d4a853;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ─── Paper Texture ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9999;
+  opacity: 0.025; mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.04) 1px, rgba(0,0,0,0.04) 2px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 3px);
+}
+
+/* ─── Hero ─── */
+.hero {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 120px;
+  background: linear-gradient(to top, var(--warm-bg), transparent);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--warm-primary);
+  padding: 5px 18px;
+  border: 1px solid var(--warm-primary);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.8s ease-out;
+}
+.hero h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  animation: fadeUp 0.8s ease-out 0.1s both;
+}
+.hero h1 span {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--warm-primary), var(--warm-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  font-size: 1.1rem;
+  color: var(--warm-secondary);
+  max-width: 480px;
+  margin-bottom: 32px;
+  font-weight: 300;
+  animation: fadeUp 0.8s ease-out 0.2s both;
+}
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--warm-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: fadeUp 0.8s ease-out 0.3s both;
+}
+.hero-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(196,82,60,0.25); }
+.hero-scroll {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: bounce 2s infinite;
+  font-size: 12px;
+  color: var(--warm-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+/* ─── Features Grid ─── */
+.features {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+}
+.section-label {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--warm-primary);
+  margin-bottom: 8px;
+}
+.section-title {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.section-sub {
+  text-align: center;
+  color: var(--warm-secondary);
+  font-weight: 300;
+  margin-bottom: 48px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ─── Feature Card ─── */
+.feature-card {
+  background: var(--warm-surface);
+  border: 1px solid var(--warm-border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s, transform 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--warm-primary), var(--warm-accent));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.feature-card:hover::before { opacity: 1; }
+.feature-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+.feature-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+.feature-card h3 { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+.feature-card p { font-size: 14px; color: var(--warm-secondary); line-height: 1.7; }
+.feature-card ul { margin-top: 10px; list-style: none; }
+.feature-card li {
+  font-size: 13px;
+  color: var(--warm-secondary);
+  padding: 3px 0;
+  padding-left: 16px;
+  position: relative;
+}
+.feature-card li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--warm-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ─── Wide Card ─── */
+.card-wide {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+@media (max-width: 700px) { .card-wide { grid-template-columns: 1fr; } }
+.card-wide .mockup {
+  background: linear-gradient(145deg, #faf7f2, #f0e8dc);
+  border-radius: 14px;
+  padding: 20px;
+  min-height: 200px;
+  border: 1px solid var(--warm-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--warm-secondary);
+  text-align: center;
+  line-height: 2;
+}
+
+/* ─── Quadrant Grid Demo ─── */
+.quadrant-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 100%;
+  height: 160px;
+}
+.quadrant-demo div {
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.4);
+  cursor: default;
+  transition: transform 0.2s;
+}
+.quadrant-demo div:hover { transform: scale(1.03); }
+.q1 { background: #fef2ee; }
+.q2 { background: #f0f4ff; }
+.q3 { background: #fffbeb; }
+.q4 { background: #f5f0ea; }
+
+/* ─── Calendar Demo ─── */
+.cal-demo {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  width: 100%;
+}
+.cal-demo .hd { font-size: 9px; text-align: center; color: var(--warm-secondary); padding: 4px 0; font-weight: 600; }
+.cal-demo .cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  color: var(--warm-secondary);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.cal-demo .cell.today { background: var(--warm-primary); color: white; font-weight: 600; }
+.cal-demo .cell.has-event { border-left: 2px solid var(--warm-primary); }
+
+/* ─── Tech Stack ─── */
+.tech-stack {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  text-align: center;
+}
+.tech-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.tech-item {
+  padding: 8px 18px;
+  background: var(--warm-surface);
+  border: 1px solid var(--warm-border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--warm-secondary);
+  transition: all 0.2s;
+}
+.tech-item:hover { border-color: var(--warm-primary); color: var(--warm-primary); }
+
+/* ─── Footer ─── */
+footer {
+  text-align: center;
+  padding: 40px 24px;
+  border-top: 1px solid var(--warm-border);
+  font-size: 13px;
+  color: var(--warm-secondary);
+}
+
+/* ─── Animations ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(6px); }
+}
+.feature-card { animation: fadeUp 0.6s ease-out both; }
+.feature-card:nth-child(1) { animation-delay: 0.05s; }
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.15s; }
+.feature-card:nth-child(4) { animation-delay: 0.2s; }
+.feature-card:nth-child(5) { animation-delay: 0.25s; }
+.feature-card:nth-child(6) { animation-delay: 0.3s; }
+.feature-card:nth-child(7) { animation-delay: 0.35s; }
+.feature-card:nth-child(8) { animation-delay: 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-badge">v1.0 · Pure Frontend</div>
+  <h1><span>日程工作台</span></h1>
+  <p>把日程、待办、工作记录放在一起的本地工具<br>不联网、不注册、数据你说了算</p>
+  <a class="hero-cta" href="javascript:void(0)" onclick="alert('双击 index.html 即可打开')">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+    开始使用
+  </a>
+  <div class="hero-scroll">SCROLL</div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features">
+  <div class="section-label">Features</div>
+  <h2 class="section-title">四个模块，一个工具</h2>
+  <p class="section-sub">日程 · 待办 · 记录 · 统计</p>
+
+  <div class="grid">
+
+    <!-- 1 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fdf2ed;color:#c4523c;">📅</div>
+      <h3>日历视图</h3>
+      <p>三种视图快速切换——月、周、日。默认周视图，折叠非工作时间。点击日期可跳转到任意一天。</p>
+      <ul>
+        <li>折叠 0:00-6:00 / 22:00-24:00，只展示工作时段</li>
+        <li>有日程时折叠条高亮提示</li>
+        <li>主题色当前时间指示线</li>
+      </ul>
+    </div>
+
+    <!-- 2 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f0f4ff;color:#3b82f6;">🎯</div>
+      <h3>四象限待办</h3>
+      <p>艾森豪威尔矩阵管理任务优先级。默认显示当天待办，可查看任意日期。</p>
+      <ul>
+        <li>四种颜色区分优先级</li>
+        <li>子任务可逐项勾选</li>
+        <li>拖拽到其他象限改变优先级</li>
+        <li>未分类日程单独显示</li>
+      </ul>
+    </div>
+
+    <!-- 3 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f0f7ee;color:#3a8c6a;">✍️</div>
+      <h3>工作记录</h3>
+      <p>结构化表单 + 自由备注，记录每天的工作内容。支持关键字搜索和历史回溯。</p>
+      <ul>
+        <li>日期、项目、标签、耗时结构化录入</li>
+        <li>自由文本备注区域</li>
+        <li>按日期分组展示</li>
+      </ul>
+    </div>
+
+    <!-- 4 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fffbeb;color:#b8860b;">📊</div>
+      <h3>统计看板</h3>
+      <p>五种图表可视化你的工作效率——折线图、饼图、柱状图、热力图。</p>
+      <ul>
+        <li>每日完成待办趋势</li>
+        <li>各项目耗时分布</li>
+        <li>四象限任务分布</li>
+        <li>日历贡献热力图</li>
+      </ul>
+    </div>
+
+    <!-- 5: wide card -->
+    <div class="feature-card card-wide">
+      <div>
+        <div class="feature-icon" style="background:#fdf2ed;color:#c4523c;">🔗</div>
+        <h3>数据统一，双向同步</h3>
+        <p>日程事件和待办事项不再割裂。一个事项可以同时拥有时间（上日历）和象限（进四象限）。在任何一端创建或修改，另一端自动同步。</p>
+        <ul>
+          <li>统一数据模型，没有数据不一致</li>
+          <li>标注四象限的日程自动出现在待办中</li>
+          <li>设置时间的待办自动显示在日历上</li>
+        </ul>
+      </div>
+      <div>
+        <div class="quadrant-demo">
+          <div class="q1" style="border-top-left-radius:10px;">重要紧急</div>
+          <div class="q2" style="border-top-right-radius:10px;">重要不紧急</div>
+          <div class="q3">紧急不重要</div>
+          <div class="q4" style="border-bottom-right-radius:10px;">不紧急不重要</div>
+        </div>
+        <div style="margin-top:8px;text-align:center;font-size:11px;color:var(--warm-secondary);">← 四种颜色对应四种日历事件色 →</div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f5f0ea;color:#8c7e6e;">💾</div>
+      <h3>本地存储，数据归你</h3>
+      <p>纯前端 SPA，数据存在你指定的 JSON 文件中。没有服务器，没有云端，没有隐私泄露。</p>
+      <ul>
+        <li>支持 File System Access API（Chrome）</li>
+        <li>自动降级到 IndexedDB</li>
+        <li>JSON 导入/导出方便迁移</li>
+        <li>按时间段导出 + 打印 PDF</li>
+      </ul>
+    </div>
+
+    <!-- 7 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fdf2ed;color:#c4523c;">🎨</div>
+      <h3>Warm Studio 设计</h3>
+      <p>暖色调手账风格——陶土红、奶油白、稻纸纹理。不是冷冰冰的蓝色生产力工具。</p>
+      <ul>
+        <li>亮色/暗色主题切换</li>
+        <li>纸纹噪点叠加层</li>
+        <li>精致阴影和微动效</li>
+      </ul>
+    </div>
+
+    <!-- 8 -->
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f0f4ff;color:#3b6ef6;">⚡</div>
+      <h3>纯前端，零依赖</h3>
+      <p>一个 HTML 文件 + 几个 JS/CSS 文件，双击就能运行。不需要 Node.js、不需要数据库、不需要部署。</p>
+      <ul>
+        <li>Tailwind CDN 快速样式</li>
+        <li>Chart.js 轻量图表</li>
+        <li>IndexedDB 浏览器原生存储</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ TECH STACK ═══ -->
+<section class="tech-stack">
+  <div class="section-label">Stack</div>
+  <h2 class="section-title" style="font-size:1.4rem;">技术栈</h2>
+  <div class="tech-grid">
+    <span class="tech-item">Vanilla JS</span>
+    <span class="tech-item">Tailwind CDN</span>
+    <span class="tech-item">Chart.js</span>
+    <span class="tech-item">IndexedDB</span>
+    <span class="tech-item">File System Access API</span>
+    <span class="tech-item">Noto Sans SC</span>
+    <span class="tech-item">Noto Serif SC</span>
+    <span class="tech-item">JetBrains Mono</span>
+    <span class="tech-item">HTML5 Drag & Drop</span>
+  </div>
+</section>
+
+<footer>
+ 日程工作台 · 2026 · 纯前端本地工具
+</footer>
+</body>
+</html>

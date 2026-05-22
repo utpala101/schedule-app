@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+scheduler-export-*.json
+scheduler-full-backup-*.json
+package.json
+package-lock.json
+test/

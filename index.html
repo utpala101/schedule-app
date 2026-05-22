@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日程工作台</title>
+<script>
+tailwind.config = { darkMode: 'class' }
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+<div id="app" class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-56 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-colors duration-200">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+      <h1 class="text-lg font-bold tracking-tight">日程工作台</h1>
+    </div>
+    <nav class="flex-1 p-2 space-y-1">
+      <button data-view="calendar" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        日程
+      </button>
+      <button data-view="todo" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        待办
+      </button>
+      <button data-view="worklog" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        工作记录
+      </button>
+      <button data-view="stats" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        统计
+      </button>
+    </nav>
+    <div id="syncSection" class="hidden px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+      <div class="text-xs text-gray-400 mb-1.5">同步</div>
+      <div class="flex gap-1">
+        <button id="syncPushBtn" class="flex-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 transition">推送</button>
+        <button id="syncPullBtn" class="flex-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 transition">拉取</button>
+      </div>
+      <div id="syncStatus" class="text-xs text-gray-400 mt-1 min-h-[1em]"></div>
+    </div>
+    <div id="storageStatus" class="p-2 border-t border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400">
+        <span class="s-icon">💾</span>
+        <span class="s-text flex-1 truncate">检查中...</span>
+        <button class="s-btn hidden px-2 py-0.5 bg-indigo-500 text-white rounded text-xs hover:bg-indigo-600" onclick="Storage.setupFilePicker()">选择</button>
+      </div>
+    </div>
+    <div class="p-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+      <button id="themeToggle" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path class="sun-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          <path class="moon-icon hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <span class="theme-text">暗色模式</span>
+      </button>
+      <button id="exportBtn" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        导出数据
+      </button>
+      <button id="importBtn" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        导入数据
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="mainContent" class="flex-1 overflow-y-auto p-4 md:p-6">
+
+    <!-- Calendar View -->
+    <section id="view-calendar" class="view-section">
+      <div id="calendarHeader" class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <button id="calPrev" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">&larr;</button>
+          <h2 id="calTitle" class="text-xl font-bold">2026年5月</h2>
+          <button id="calNext" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">&rarr;</button>
+          <button id="calToday" class="ml-2 px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">今天</button>
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button data-cal-view="month" class="cal-view-btn px-3 py-1 text-sm rounded-md">月</button>
+            <button data-cal-view="week" class="cal-view-btn px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-700 shadow-sm font-medium">周</button>
+            <button data-cal-view="day" class="cal-view-btn px-3 py-1 text-sm rounded-md">日</button>
+          </div>
+          <button id="calSettings" class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700" title="工作时段设置">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="calendarBody" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="text-center py-20 text-gray-400">加载中...</div>
+      </div>
+    </section>
+
+    <!-- Todo View -->
+    <section id="view-todo" class="view-section hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">四象限待办</h2>
+        <button id="addTodoBtn" class="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">+ 新建待办</button>
+      </div>
+      <div id="todoContainer" class="min-h-[400px]"></div>
+    </section>
+
+    <!-- Work Log View -->
+    <section id="view-worklog" class="view-section hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">工作记录</h2>
+        <button id="addWorklogBtn" class="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">+ 写记录</button>
+      </div>
+      <div class="mb-4">
+        <input id="worklogSearch" type="text" placeholder="搜索工作记录..." class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none">
+      </div>
+      <div id="worklogList" class="space-y-3"></div>
+    </section>
+
+    <!-- Stats View -->
+    <section id="view-stats" class="view-section hidden">
+      <h2 class="text-xl font-bold mb-4">统计看板</h2>
+      <div id="statsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="stat-card bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">每日完成待办</h3>
+          <canvas id="chartTodoDaily"></canvas>
+        </div>
+        <div class="stat-card bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">耗时汇总（按项目）</h3>
+          <canvas id="chartHoursByProject"></canvas>
+        </div>
+        <div class="stat-card bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">四象限分布</h3>
+          <canvas id="chartQuadrant"></canvas>
+        </div>
+        <div class="stat-card bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">完成率趋势</h3>
+          <canvas id="chartCompletionRate"></canvas>
+        </div>
+        <div class="stat-card lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">日历热力图</h3>
+          <canvas id="chartHeatmap"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Modals -->
+<div id="modalOverlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+  <div id="modalContent" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"></div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importFileInput" accept=".json" class="hidden">
+
+<script src="js/storage.js"></script>
+<script src="js/db.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/todo.js"></script>
+<script src="js/worklog.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
