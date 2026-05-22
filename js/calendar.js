@@ -54,7 +54,7 @@ const Calendar = {
 
   render() {
     const {start,end}=this.getViewStartEnd();
-    this._recurClones=this._expandRecurring(this.items.filter(i=>i.recur?.type),start.toISOString().slice(0,10),end.toISOString().slice(0,10));
+    this._recurClones=this._expandRecurring(this.items.filter(i=>i.recur?.type),Calendar._locDate(start),Calendar._locDate(end));
     this._startTimeIndicator();
     if (this.view === 'month') this.renderMonth();
     else if (this.view === 'week') this.renderWeek();
@@ -95,7 +95,7 @@ const Calendar = {
     for (const d of wd) html += `<div class="cal-weekday-header">${d}</div>`;
     const cur = new Date(start);
     while (cur <= end) {
-      const ds = cur.toISOString().slice(0,10);
+      const ds = Calendar._locDate(cur);
       const its = cur.toDateString()===today;
       const io = cur.getMonth()!==this.currentDate.getMonth();
       const de = this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds);
@@ -151,7 +151,7 @@ const Calendar = {
     const cc = isDay ? 1 : 7;
     for (let i=0; i<cc; i++) {
       const d = new Date(start); if(isDay) d.setTime(this.currentDate.getTime()); else d.setDate(d.getDate()+i);
-      const ds = d.toISOString().slice(0,10);
+      const ds = Calendar._locDate(d);
       const its = d.toDateString()===today;
       html += `<div class="flex-1 relative ${its?'bg-indigo-50/30 dark:bg-indigo-900/10':''}" style="border-left:1px solid var(--color-border);">`;
 
@@ -206,7 +206,7 @@ const Calendar = {
     return Math.max(Math.max(ve-vs,0)/(th*60)*(th*sh),18);
   },
   _countInRange(d,sh,eh) {
-    const ds=d.toISOString().slice(0,10);
+    const ds=Calendar._locDate(d);
     return this._allItems().filter(e=>e.start&&e.start.slice(0,10)===ds).filter(e=>{const h=parseInt(e.start.slice(11,13)); return h>=sh&&h<eh;}).length;
   },
   _countRange(sd,sh,nd,eh) { let t=0; for(let i=0;i<nd;i++){const d=new Date(sd);d.setDate(d.getDate()+i);t+=this._countInRange(d,sh,eh);} return t; },
@@ -256,8 +256,8 @@ const Calendar = {
     p.onchange=null;
     p.onchange=function(){const cb=Calendar._pickerCB;Calendar._pickerCB=null;if(cb)cb(this.value);};
     if(this.view==='month'){p.type='month';p.value=`${this.currentDate.getFullYear()}-${(this.currentDate.getMonth()+1).toString().padStart(2,'0')}`;}
-    else if(this.view==='week'){p.type='date';const s=new Date(this.currentDate);s.setDate(s.getDate()-s.getDay());p.value=s.toISOString().slice(0,10);}
-    else{p.type='date';p.value=this.currentDate.toISOString().slice(0,10);}
+    else if(this.view==='week'){p.type='date';const s=new Date(this.currentDate);s.setDate(s.getDate()-s.getDay());p.value=Calendar._locDate(s);}
+    else{p.type='date';p.value=Calendar._locDate(this.currentDate);}
     try{if(p.showPicker)p.showPicker();else p.click();}catch(e){p.click();}
   },
 
@@ -361,6 +361,7 @@ const Calendar = {
     };
   },
   _locStr(d) { const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); },
+  _locDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
   _durEndToDur() {
     const s=document.getElementById('fmStart')?.value, e=document.getElementById('fmEnd')?.value;
     if (s&&e) { const d=new Date(e)-new Date(s);
@@ -426,7 +427,7 @@ const Calendar = {
       const rs=new Date(Math.max(s,is)); const re=ie?new Date(Math.min(e,ie)):e;
       let cur=new Date(rs);
       while(cur<=re){
-        const ds=cur.toISOString().slice(0,10);
+        const ds=Calendar._locDate(cur);
         if(!ex.includes(ds)&&this._matchRecur(r,cur,is)){
           clones.push({...item,id:item.id+'_'+ds,_masterId:item.id,_instanceDate:ds,_isRecurrence:true,
             start:ds+'T'+item.start.slice(11),
@@ -449,7 +450,7 @@ const Calendar = {
     document.getElementById('fmSave').onclick = async () => {
       const data = this._readItemForm();
       if (!data) return;
-      const item = { ...data, id: 'ev_'+Date.now(), created: new Date().toISOString().slice(0,10) };
+      const item = { ...data, id: 'ev_'+Date.now(), created: Calendar._locDate(new Date()) };
       await DB.put('items', item);
       this.items.push(item);
       document.getElementById('modalOverlay').classList.add('hidden');
@@ -512,7 +513,7 @@ const Calendar = {
       // Split at this date: keep original events before, end series here
       const d = new Date(instanceDate+'T00:00:00');
       d.setDate(d.getDate()-1);
-      item.recur.endDate = d.toISOString().slice(0,10);
+      item.recur.endDate = Calendar._locDate(d);
       // Also add this instance to exceptions
       item.recur.exceptions = [...(item.recur.exceptions||[]), instanceDate];
       await DB.put('items', item);
@@ -535,7 +536,7 @@ const Calendar = {
   },
   bindCellClicks() {
     document.querySelectorAll('.cal-day-cell, .cal-time-slot').forEach(el => {
-      el.addEventListener('click', (e) => { if (e.target.closest('.cal-event')) return; this.createEvent(el.dataset.date||this.currentDate.toISOString().slice(0,10), el.dataset.hour||'12'); });
+      el.addEventListener('click', (e) => { if (e.target.closest('.cal-event')) return; this.createEvent(el.dataset.date||Calendar._locDate(this.currentDate), el.dataset.hour||'12'); });
     });
   },
 

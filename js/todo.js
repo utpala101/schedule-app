@@ -14,7 +14,7 @@ const Todo = {
   },
 
   _itemsForDate(date) {
-    const ds = date.toISOString().slice(0,10);
+    const ds = Calendar._locDate(date);
     return this.items.filter(i => {
       if (i.quadrant == null) return false;
       if (i.start && i.start.slice(0,10) === ds) return true;
@@ -25,7 +25,7 @@ const Todo = {
   },
 
   _uncategorizedForDate(date) {
-    const ds = date.toISOString().slice(0,10);
+    const ds = Calendar._locDate(date);
     return this.items.filter(i => {
       if (i.quadrant != null) return false;
       if (!i.start) return false;
@@ -35,8 +35,8 @@ const Todo = {
 
   render() {
     const container = document.getElementById('todoContainer');
-    const ds = this.currentDate.toISOString().slice(0,10);
-    const today = new Date().toISOString().slice(0,10);
+    const ds = Calendar._locDate(this.currentDate);
+    const today = Calendar._locDate(new Date());
     const days = ['日','一','二','三','四','五','六'];
     const dayItems = this._itemsForDate(this.currentDate);
     const uncatItems = this._uncategorizedForDate(this.currentDate);
@@ -96,7 +96,7 @@ const Todo = {
         <span class="${s.completed?'line-through opacity-50':''}">${s.title}</span>
       </div>`).join('');
     const tagHtml = (item.tags||[]).map(t => `<span class="tag-badge">${t}</span>`).join(' ');
-    const overdue = item.dueDate && !item.completed && item.dueDate < new Date().toISOString().slice(0,10);
+    const overdue = item.dueDate && !item.completed && item.dueDate < Calendar._locDate(new Date());
     const qColor = QUAD_COLORS[item.quadrant||0];
     const borderStyle = noQuadrant ? 'border-left-color:#8c7e6e;border-left-width:2px' : `border-left-color:${qColor};border-left-width:3px`;
     return `
@@ -234,7 +234,7 @@ const Todo = {
         Todo.render();
       };
     }
-    p.value = this.currentDate.toISOString().slice(0,10);
+    p.value = Calendar._locDate(this.currentDate);
     try { if(p.showPicker) p.showPicker(); else p.click(); } catch(e){ p.click(); }
   },
 
@@ -337,7 +337,7 @@ const Todo = {
   },
 
   create() {
-    const defDate = this.currentDate.toISOString().slice(0,10);
+    const defDate = Calendar._locDate(this.currentDate);
     Calendar.showModal(this._formHTML(null, '新建待办') +
       `<div class="flex gap-2 mt-4">
         <button id="fmSave" class="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">保存</button>
@@ -347,7 +347,7 @@ const Todo = {
     document.getElementById('fmSave').onclick = async () => {
       const data = this._readForm();
       if (!data) return;
-      const item = { ...data, id: 'td_'+Date.now(), created: new Date().toISOString().slice(0,10) };
+      const item = { ...data, id: 'td_'+Date.now(), created: Calendar._locDate(new Date()) };
       await DB.put('items', item);
       this.items.push(item);
       document.getElementById('modalOverlay').classList.add('hidden');
