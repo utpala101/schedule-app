@@ -679,7 +679,7 @@ const Calendar = {
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">日程块透明度</label>
+          <label class="block text-sm font-medium mb-1">日程块不透明度</label>
           <div class="flex items-center gap-3">
             <input type="range" id="setOpacity" min="0.2" max="1" step="0.05" value="${curOp}" class="flex-1">
             <span id="opacityVal" class="text-sm text-gray-500 w-8 text-right">${Math.round(parseFloat(curOp)*100)}%</span>
