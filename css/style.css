@@ -310,7 +310,7 @@ body::after {
   right: 3px;
   z-index: 10;
   transition: filter 0.15s, opacity 0.15s, box-shadow 0.2s;
-  opacity: var(--cal-event-opacity, 1);
+  opacity: var(--cal-event-opacity, 1) !important;
 }
 .cal-event.cal-event-done { opacity: 0.35 !important; }
 .cal-event:hover {
