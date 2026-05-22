@@ -15,7 +15,7 @@ const Calendar = {
     this._workStart = parseInt(localStorage.getItem('cal_workStart')) || 6;
     this._workEnd = parseInt(localStorage.getItem('cal_workEnd')) || 22;
     const op = localStorage.getItem('cal_eventOpacity');
-    if (op) document.documentElement.style.setProperty('--cal-event-opacity', op);
+    if (op) { const s=document.createElement('style'); s.id='cal-opacity-style'; s.textContent='.cal-event:not(.cal-event-done){opacity:'+op+'!important}'; document.head.appendChild(s); }
     await this.loadItems();
     this.render();
 
@@ -655,7 +655,9 @@ const Calendar = {
   },
 
   _setEventOpacity(val) {
-    document.documentElement.style.setProperty('--cal-event-opacity', val);
+    let s = document.getElementById('cal-opacity-style');
+    if (!s) { s = document.createElement('style'); s.id = 'cal-opacity-style'; document.head.appendChild(s); }
+    s.textContent = '.cal-event:not(.cal-event-done){opacity:'+val+'!important}';
     localStorage.setItem('cal_eventOpacity', val);
   },
 
