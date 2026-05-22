@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Starting 日程工作台 Sync Server...
+echo Starting Schedule Sync Server...
 echo.
 node server.js
 if errorlevel 1 (
