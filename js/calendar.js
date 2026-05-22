@@ -429,7 +429,7 @@ const Calendar = {
     const onMove = (e) => {
       if (!dragEl) return;
       if (!dragMoved) {
-        if (Math.abs(e.clientX - dragStartX) < 5 && Math.abs(e.clientY - dragStartY) < 5) return;
+        if (Math.abs(e.clientX - dragStartX) < 2 && Math.abs(e.clientY - dragStartY) < 2) return;
         dragMoved = true;
         dragEl.classList.add('dragging');
         e.preventDefault();
