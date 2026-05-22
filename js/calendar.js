@@ -14,8 +14,6 @@ const Calendar = {
   async init() {
     this._workStart = parseInt(localStorage.getItem('cal_workStart')) || 6;
     this._workEnd = parseInt(localStorage.getItem('cal_workEnd')) || 22;
-    const op = localStorage.getItem('cal_eventOpacity');
-    if (op) { const s=document.createElement('style'); s.id='cal-opacity-style'; s.textContent='.cal-event:not(.cal-event-done){opacity:'+op+'!important}'; document.head.appendChild(s); }
     await this.loadItems();
     this.render();
 
@@ -61,6 +59,12 @@ const Calendar = {
     if (this.view === 'month') this.renderMonth();
     else if (this.view === 'week') this.renderWeek();
     else this.renderDay();
+    this._applyOpacity();
+  },
+  _applyOpacity() {
+    const op = localStorage.getItem('cal_eventOpacity');
+    if (!op || op === '1') return;
+    document.querySelectorAll('.cal-event:not(.cal-event-done)').forEach(el => el.style.opacity = op);
   },
   _allItems() { return [...this.items.filter(i=>!i.recur?.type),...(this._recurClones||[])]; },
 
@@ -655,10 +659,8 @@ const Calendar = {
   },
 
   _setEventOpacity(val) {
-    let s = document.getElementById('cal-opacity-style');
-    if (!s) { s = document.createElement('style'); s.id = 'cal-opacity-style'; document.head.appendChild(s); }
-    s.textContent = '.cal-event:not(.cal-event-done){opacity:'+val+'!important}';
     localStorage.setItem('cal_eventOpacity', val);
+    document.querySelectorAll('.cal-event:not(.cal-event-done)').forEach(el => el.style.opacity = val);
   },
 
   showSettings() {
