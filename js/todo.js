@@ -247,13 +247,28 @@ const Todo = {
     const tg = item ? (item.tags||[]).join(', ') : '';
     const sb = item ? (item.subtasks||[]).map(s=>s.title).join('\n') : '';
     const nt = item ? (item.notes||'') : '';
-    return `
+    let durH=0, durM=0;
+    if (item && item.start && item.end) {
+      const diff = new Date(item.end) - new Date(item.start);
+      if (diff > 0) { durH = Math.floor(diff/3600000); durM = Math.round((diff%3600000)/60000); }
+    }
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
         <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="待办内容"></div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}"></div>
-          <div><label class="block text-sm font-medium mb-1">结束</label><input type="datetime-local" id="fmEnd" value="${en}"></div>
+          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durEndToDur()"></div>
+          <div><label class="block text-sm font-medium mb-1">结束</label><input type="datetime-local" id="fmEnd" value="${en}" onchange="Calendar._durEndToDur()"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="block text-sm font-medium mb-1">持续时间</label>
+            <div class="flex items-center gap-1">
+              <input type="number" id="fmDurH" min="0" max="24" value="${durH}" placeholder="时" class="w-full" oninput="Calendar._durDurToEnd()">
+              <span class="text-xs text-gray-400">时</span>
+              <input type="number" id="fmDurM" min="0" max="59" step="15" value="${durM}" placeholder="分" class="w-full" oninput="Calendar._durDurToEnd()">
+              <span class="text-xs text-gray-400">分</span>
+            </div>
+          </div>
+          <div></div>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div><label class="block text-sm font-medium mb-1">四象限</label>
@@ -279,10 +294,17 @@ const Todo = {
     if (!title) return alert('请输入标题');
     const subs = document.getElementById('fmSubtasks').value.trim().split('\n').filter(s=>s.trim()).map(s=>({title:s.trim(),completed:false}));
     const tags = document.getElementById('fmTags').value.trim().split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    let end = document.getElementById('fmEnd').value || '';
+    const start = document.getElementById('fmStart').value;
+    if (!end && start) {
+      const dh = parseInt(document.getElementById('fmDurH')?.value)||0;
+      const dm = parseInt(document.getElementById('fmDurM')?.value)||0;
+      if (dh||dm) { const d=new Date(start); d.setHours(d.getHours()+dh,d.getMinutes()+dm); end=d.toISOString().slice(0,16); }
+    }
     return {
       title,
-      start: document.getElementById('fmStart').value,
-      end: document.getElementById('fmEnd').value || '',
+      start,
+      end,
       quadrant: document.getElementById('fmQuadrant').value ? parseInt(document.getElementById('fmQuadrant').value) : null,
       dueDate: document.getElementById('fmDue').value || '',
       tags, subtasks: subs,
