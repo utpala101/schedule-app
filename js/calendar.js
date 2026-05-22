@@ -413,8 +413,22 @@ const Calendar = {
     let dragStartX = 0, dragStartY = 0, dragMoved = false;
 
     const getSlotAtPoint = (x, y) => {
+      // Primary: elementsFromPoint
       const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
-      return els.find(el => el.classList && el.classList.contains('cal-time-slot'));
+      const hit = els.find(el => el.classList?.contains('cal-time-slot'));
+      if (hit) return hit;
+      // Fallback: find column by x, compute hour by y
+      const grid = document.getElementById('calendarBody');
+      if (!grid) return null;
+      const cols = Array.from(grid.querySelectorAll('.flex-1.relative'));
+      const col = cols.find(c => { const r=c.getBoundingClientRect(); return x>=r.left && x<r.right; });
+      if (!col) return null;
+      const slots = col.querySelectorAll('.cal-time-slot');
+      if (!slots.length) return null;
+      const sr = slots[0].getBoundingClientRect();
+      const sh = sr.height || 40;
+      const idx = Math.max(0, Math.min(Math.round((y - sr.top) / sh), slots.length-1));
+      return slots[idx];
     };
 
     const onStart = (e) => {
@@ -451,7 +465,7 @@ const Calendar = {
 
     const onDrop = (e) => {
       if (!dragEl || !dragMoved) { onEnd(); return; }
-      const slot = currentSlot || getSlotAtPoint(e.clientX, e.clientY);
+      const slot = getSlotAtPoint(e.clientX, e.clientY) || currentSlot;
       if (!slot || !slot.dataset) { onEnd(); return; }
       const id = dragEl.dataset.id, date = slot.dataset.date, hour = slot.dataset.hour;
       if (date && hour !== undefined) {
