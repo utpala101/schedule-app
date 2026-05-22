@@ -65,6 +65,9 @@ const Calendar = {
     const op = localStorage.getItem('cal_eventOpacity');
     if (!op || op === '1') return;
     document.querySelectorAll('.cal-event:not(.cal-event-done)').forEach(el => el.style.opacity = op);
+    let s = document.getElementById('cal-opacity-style');
+    if (!s) { s = document.createElement('style'); s.id = 'cal-opacity-style'; document.head.appendChild(s); }
+    s.textContent = '.cal-event:not(.cal-event-done){opacity:'+op+'!important}';
   },
   _allItems() { return [...this.items.filter(i=>!i.recur?.type),...(this._recurClones||[])]; },
 
@@ -660,7 +663,12 @@ const Calendar = {
 
   _setEventOpacity(val) {
     localStorage.setItem('cal_eventOpacity', val);
+    // Direct inline style (highest specificity)
     document.querySelectorAll('.cal-event:not(.cal-event-done)').forEach(el => el.style.opacity = val);
+    // Also inject style as belt-and-suspenders
+    let s = document.getElementById('cal-opacity-style');
+    if (!s) { s = document.createElement('style'); s.id = 'cal-opacity-style'; document.head.appendChild(s); }
+    s.textContent = '.cal-event:not(.cal-event-done){opacity:'+val+'!important}';
   },
 
   showSettings() {
@@ -691,13 +699,17 @@ const Calendar = {
         <button id="setCancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
       </div>
     `);
-    document.getElementById('setOpacity').oninput = function() {
-      document.getElementById('opacityVal').textContent = Math.round(parseFloat(this.value)*100)+'%';
-      Calendar._setEventOpacity(this.value);
+    const applyOpa = () => {
+      const v = document.getElementById('setOpacity').value;
+      document.getElementById('opacityVal').textContent = Math.round(parseFloat(v)*100)+'%';
+      Calendar._setEventOpacity(v);
     };
+    document.getElementById('setOpacity').oninput = applyOpa;
+    document.getElementById('setOpacity').onchange = applyOpa;
     document.getElementById('setSave').onclick = () => {
       this._workStart=parseInt(document.getElementById('setWorkStart').value); this._workEnd=parseInt(document.getElementById('setWorkEnd').value);
       localStorage.setItem('cal_workStart',this._workStart); localStorage.setItem('cal_workEnd',this._workEnd);
+      applyOpa();
       document.getElementById('modalOverlay').classList.add('hidden');
     };
     document.getElementById('setCancel').onclick = () => document.getElementById('modalOverlay').classList.add('hidden');
