@@ -471,17 +471,15 @@ const Calendar = {
       if (date && hour !== undefined) {
         const ev = this.items.find(i => i.id === id);
         if (ev) {
-          if (date !== ev.start.slice(0,10)) {
-            const oldStart = ev.start;
-            ev.start = `${date}T${oldStart.slice(11)}`;
+          const oldStart = ev.start;
+          const oldHr = parseInt(oldStart.slice(11,13));
+          const newHr = parseInt(hour);
+          if (date !== oldStart.slice(0,10) || newHr !== oldHr) {
+            ev.start = `${date}T${newHr.toString().padStart(2,'0')}:${oldStart.slice(14,16)}`;
             if (ev.end) {
               const dur = new Date(ev.end) - new Date(oldStart);
               if (dur > 0) ev.end = Calendar._locStr(new Date(new Date(ev.start).getTime() + dur));
             }
-          } else if (parseInt(hour) !== parseInt(ev.start.slice(11,13))) {
-            const oh = parseInt(ev.start.slice(11,13));
-            ev.start = `${date}T${hour.padStart(2,'0')}:${ev.start.slice(14,16)}`;
-            if (ev.end) ev.end = `${date}T${(parseInt(hour)+(parseInt(ev.end.slice(11,13))-oh)).toString().padStart(2,'0')}:${ev.end.slice(14,16)}`;
           }
           DB.put('items', ev).then(() => this.loadItems().then(()=>this.render()));
         }
