@@ -252,6 +252,7 @@ const Todo = {
       const diff = new Date(item.end) - new Date(item.start);
       if (diff > 0) { durH = Math.floor(diff/3600000); durM = Math.round((diff%3600000)/60000); }
     }
+    return `
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
         <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="待办内容"></div>

@@ -413,21 +413,20 @@ const Calendar = {
     let dragStartX = 0, dragStartY = 0, dragMoved = false;
 
     const getSlotAtPoint = (x, y) => {
-      // Primary: elementsFromPoint
-      const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
-      const hit = els.find(el => el.classList?.contains('cal-time-slot'));
-      if (hit) return hit;
-      // Fallback: find column by x, compute hour by y
+      // Find the calendar grid container
       const grid = document.getElementById('calendarBody');
       if (!grid) return null;
+      // Find which day column the mouse is over (by x coordinate)
       const cols = Array.from(grid.querySelectorAll('.flex-1.relative'));
       const col = cols.find(c => { const r=c.getBoundingClientRect(); return x>=r.left && x<r.right; });
       if (!col) return null;
+      // Get column's date from any slot
       const slots = col.querySelectorAll('.cal-time-slot');
       if (!slots.length) return null;
+      // Compute which hour slot by y coordinate relative to first slot
       const sr = slots[0].getBoundingClientRect();
       const sh = sr.height || 40;
-      const idx = Math.max(0, Math.min(Math.round((y - sr.top) / sh), slots.length-1));
+      const idx = Math.max(0, Math.min(Math.round((y - sr.top) / sh), slots.length - 1));
       return slots[idx];
     };
 
