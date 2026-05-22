@@ -14,6 +14,8 @@ const Calendar = {
   async init() {
     this._workStart = parseInt(localStorage.getItem('cal_workStart')) || 6;
     this._workEnd = parseInt(localStorage.getItem('cal_workEnd')) || 22;
+    const op = localStorage.getItem('cal_eventOpacity');
+    if (op) document.documentElement.style.setProperty('--cal-event-opacity', op);
     await this.loadItems();
     this.render();
 
@@ -652,25 +654,47 @@ const Calendar = {
     });
   },
 
+  _setEventOpacity(val) {
+    document.documentElement.style.setProperty('--cal-event-opacity', val);
+    localStorage.setItem('cal_eventOpacity', val);
+  },
+
   showSettings() {
+    const curOp = localStorage.getItem('cal_eventOpacity') || '1';
     this.showModal(`
-      <h3 class="text-lg font-bold mb-4">工作时段设置</h3>
-      <p class="text-sm text-gray-500 mb-4">折叠时段外的所有小时，一键展开即可查看全部。</p>
-      <div class="space-y-3">
-        <div><label class="block text-sm font-medium mb-1">开始时间</label>
-          <select id="setWorkStart">${[0,1,2,3,4,5,6,7,8,9,10].map(h=>`<option value="${h}" ${h===this._workStart?'selected':''}>${h.toString().padStart(2,'0')}:00</option>`).join('')}</select></div>
-        <div><label class="block text-sm font-medium mb-1">结束时间</label>
-          <select id="setWorkEnd">${[14,15,16,17,18,19,20,21,22,23].map(h=>`<option value="${h}" ${h===this._workEnd?'selected':''}>${h.toString().padStart(2,'0')}:00</option>`).join('')}</select></div>
+      <h3 class="text-lg font-bold mb-4">日历设置</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">工作时段</label>
+          <p class="text-xs text-gray-400 mb-2">折叠时段外的所有小时，一键展开即可查看全部。</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="text-xs text-gray-400">开始</label>
+              <select id="setWorkStart">${[0,1,2,3,4,5,6,7,8,9,10].map(h=>`<option value="${h}" ${h===this._workStart?'selected':''}>${h.toString().padStart(2,'0')}:00</option>`).join('')}</select></div>
+            <div><label class="text-xs text-gray-400">结束</label>
+              <select id="setWorkEnd">${[14,15,16,17,18,19,20,21,22,23].map(h=>`<option value="${h}" ${h===this._workEnd?'selected':''}>${h.toString().padStart(2,'0')}:00</option>`).join('')}</select></div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">日程块透明度</label>
+          <div class="flex items-center gap-3">
+            <input type="range" id="setOpacity" min="0.2" max="1" step="0.05" value="${curOp}" class="flex-1">
+            <span id="opacityVal" class="text-sm text-gray-500 w-8 text-right">${Math.round(parseFloat(curOp)*100)}%</span>
+          </div>
+        </div>
       </div>
       <div class="flex gap-2 mt-4">
         <button id="setSave" class="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">保存</button>
         <button id="setCancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
       </div>
     `);
+    document.getElementById('setOpacity').oninput = function() {
+      document.getElementById('opacityVal').textContent = Math.round(parseFloat(this.value)*100)+'%';
+      Calendar._setEventOpacity(this.value);
+    };
     document.getElementById('setSave').onclick = () => {
       this._workStart=parseInt(document.getElementById('setWorkStart').value); this._workEnd=parseInt(document.getElementById('setWorkEnd').value);
       localStorage.setItem('cal_workStart',this._workStart); localStorage.setItem('cal_workEnd',this._workEnd);
-      document.getElementById('modalOverlay').classList.add('hidden'); this.render();
+      document.getElementById('modalOverlay').classList.add('hidden');
     };
     document.getElementById('setCancel').onclick = () => document.getElementById('modalOverlay').classList.add('hidden');
   },
