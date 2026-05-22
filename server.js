@@ -92,28 +92,26 @@ async function handleRequest(req, res) {
   }
 
   if (url.pathname === '/api/sync-push' && method === 'POST') {
-    // pull --rebase first to avoid conflicts
-    let r = execGit('pull --rebase origin main 2>&1');
-    if (!r.ok) r = execGit('pull --rebase origin master 2>&1');
-    if (!r.ok && !r.error.includes('Could not read from remote repository')) {
-      return sendJSON(res, 200, { ok: true, message: '⚠ 无法连接远程仓库，仅本地提交' });
-    }
+    // pull --rebase first (best-effort, may fail for new repos)
+    execGit('pull --rebase origin main 2>&1');
+    execGit('pull --rebase origin master 2>&1');
     execGit('add scheduler-data.json');
     const diff = execGit('diff --cached --quiet');
     if (diff.ok) {
       return sendJSON(res, 200, { ok: true, message: '✓ 没有变更需要同步' });
     }
     const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    r = execGit(`commit -m "sync data ${ts}"`);
+    let r = execGit(`commit -m "sync data ${ts}"`);
     if (!r.ok) return sendJSON(res, 500, { ok: false, error: r.error });
     r = execGit('push');
-    if (!r.ok) return sendJSON(res, 500, { ok: false, error: r.error });
+    if (!r.ok) return sendJSON(res, 200, { ok: false, message: '⚠ 推送失败: ' + r.error });
     return sendJSON(res, 200, { ok: true, message: '✓ 同步推送成功' });
   }
 
   if (url.pathname === '/api/sync-pull' && method === 'POST') {
-    const r = execGit('pull 2>&1');
-    if (!r.ok) return sendJSON(res, 500, { ok: false, error: r.error });
+    let r = execGit('pull 2>&1');
+    if (!r.ok) r = execGit('pull origin master 2>&1');
+    if (!r.ok) return sendJSON(res, 200, { ok: false, message: '⚠ 拉取失败: ' + r.error });
     ensureDataFile();
     try {
       const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));

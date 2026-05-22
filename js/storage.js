@@ -280,12 +280,11 @@ const Storage = {
         document.dispatchEvent(new CustomEvent('db-sync', { detail: { store: 'items' } }));
         if (el) el.textContent = data.message;
       } else if (data.ok && !data.data) {
-        // pull succeeded but no data change, re-read anyway
         const reread = await this._readServer();
         if (reread) { DB.data = reread; document.dispatchEvent(new CustomEvent('db-sync', { detail: { store: 'items' } })); }
         if (el) el.textContent = data.message;
       } else {
-        if (el) el.textContent = '✗ ' + (data.error || '拉取失败');
+        if (el) el.textContent = data.message || '✗ 拉取失败';
       }
     } catch (e) {
       if (el) el.textContent = '✗ 连接服务器失败';
