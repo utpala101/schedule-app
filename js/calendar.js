@@ -377,6 +377,7 @@ const Calendar = {
     if (this._dragInitDone) return;
     this._dragInitDone = true;
     let dragEl = null, currentSlot = null;
+    let dragStartX = 0, dragStartY = 0, dragMoved = false;
 
     const getSlotAtPoint = (x, y) => {
       const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
@@ -386,13 +387,20 @@ const Calendar = {
     const onStart = (e) => {
       const ev = e.target.closest('.cal-event');
       if (!ev) return;
-      e.preventDefault(); // prevent text selection
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragMoved = false;
       dragEl = ev;
-      ev.classList.add('dragging');
     };
 
     const onMove = (e) => {
       if (!dragEl) return;
+      if (!dragMoved) {
+        if (Math.abs(e.clientX - dragStartX) < 5 && Math.abs(e.clientY - dragStartY) < 5) return;
+        dragMoved = true;
+        dragEl.classList.add('dragging');
+        e.preventDefault();
+      }
       const slot = getSlotAtPoint(e.clientX, e.clientY);
       if (slot && slot !== currentSlot) {
         if (currentSlot) currentSlot.classList.remove('drop-target');
@@ -404,11 +412,11 @@ const Calendar = {
     const onEnd = () => {
       if (dragEl) dragEl.classList.remove('dragging');
       if (currentSlot) currentSlot.classList.remove('drop-target');
-      dragEl = null; currentSlot = null;
+      dragEl = null; currentSlot = null; dragMoved = false;
     };
 
     const onDrop = (e) => {
-      if (!dragEl) return;
+      if (!dragEl || !dragMoved) { onEnd(); return; }
       const slot = currentSlot || getSlotAtPoint(e.clientX, e.clientY);
       if (!slot || !slot.dataset) { onEnd(); return; }
       const id = dragEl.dataset.id, date = slot.dataset.date, hour = slot.dataset.hour;
