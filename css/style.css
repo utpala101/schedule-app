@@ -145,20 +145,86 @@ body::after {
 .bg-indigo-50 { background-color: var(--color-primary-light); }
 
 /* ── Sidebar ── */
+#sidebar {
+  background: #2C1810 !important;
+  border-right-color: #3D2317 !important;
+}
+.dark #sidebar { background: #1a0f0a !important; border-right-color: #2c1a10 !important; }
 #sidebar h1 {
   font-family: var(--font-serif);
   font-size: 1.1rem;
   letter-spacing: 0.05em;
-  color: var(--color-primary);
+  color: #d9755a !important;
 }
-.nav-btn {
+#sidebar .nav-btn {
   transition: all 0.2s;
   border-radius: 10px;
   font-weight: 500;
   font-size: 0.875rem;
+  color: #b8a898 !important;
 }
-.nav-btn svg { opacity: 0.7; transition: opacity 0.2s; }
-.nav-btn:hover svg { opacity: 1; }
+#sidebar .nav-btn:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #f0e8dc !important;
+}
+#sidebar .nav-btn svg { opacity: 0.5; transition: opacity 0.2s; }
+#sidebar .nav-btn:hover svg { opacity: 1; }
+/* Active nav */
+#sidebar .nav-btn.bg-indigo-50, #sidebar .nav-btn.dark\:bg-indigo-900\/30 {
+  background: rgba(217, 117, 90, 0.15) !important;
+}
+#sidebar .nav-btn.text-indigo-600, #sidebar .nav-btn.dark\:text-indigo-400 {
+  color: #e49a80 !important;
+}
+/* Sidebar borders */
+#sidebar .border-gray-200, #sidebar .dark\:border-gray-700 { border-color: #3D2317 !important; }
+.dark #sidebar .border-gray-200, .dark #sidebar .dark\:border-gray-700 { border-color: #2c1a10 !important; }
+/* Sidebar bottom buttons */
+#sidebar #themeToggle, #sidebar #exportBtn, #sidebar #importBtn {
+  color: #b8a898 !important;
+  transition: all 0.2s;
+}
+#sidebar #themeToggle:hover, #sidebar #exportBtn:hover, #sidebar #importBtn:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #f0e8dc !important;
+}
+#sidebar #themeToggle .theme-text { color: inherit; }
+/* Sync section */
+#syncSection { border-top-color: #3D2317 !important; }
+.dark #syncSection { border-top-color: #2c1a10 !important; }
+#syncSection .text-gray-400 { color: #9a8a78 !important; }
+#syncSection button {
+  background: rgba(255,255,255,0.06) !important;
+  color: #b8a898 !important;
+  transition: all 0.2s;
+}
+#syncSection button:hover {
+  background: rgba(255,255,255,0.12) !important;
+  color: #f0e8dc !important;
+}
+/* Storage status */
+#storageStatus .text-gray-400 { color: #9a8a78 !important; }
+#storageStatus { border-top-color: #3D2317 !important; }
+.dark #storageStatus { border-top-color: #2c1a10 !important; }
+
+/* ── View Switch Animation ── */
+.view-section { animation: viewStagger 0.35s ease-out both; }
+@keyframes viewStagger { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Todo Complete Animation ── */
+.todo-item.completed { animation: completePulse 0.4s ease-out; }
+@keyframes completePulse { 0% { transform: scale(1); } 50% { transform: scale(0.96); } 100% { transform: scale(1); opacity: 0.45; } }
+
+/* ── Drag Over Pulse ── */
+.quadrant.drag-over { animation: dragPulse 0.6s ease-in-out infinite alternate; }
+@keyframes dragPulse { from { box-shadow: 0 0 0 2px var(--color-primary); } to { box-shadow: 0 0 0 2px rgba(196,82,60,0.25); } }
+
+/* ── Checkbox happy bounce ── */
+.todo-toggle:checked, .subtask-checkbox:checked { animation: checkBounce 0.25s ease-out; }
+@keyframes checkBounce { 0% { transform: scale(1); } 50% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+/* ── Sidebar nav icon spring ── */
+.nav-btn:hover svg { transform: scale(1.15); }
 
 @media (max-width: 640px) {
   #sidebar { width: 3.5rem; }
@@ -214,10 +280,18 @@ body::after {
   font-size: 11px;
   font-weight: 500;
 }
-.cal-time-slot:hover {
-  background: var(--color-primary-subtle);
-}
+.cal-time-slot:hover { background: var(--color-primary-subtle); }
 .cal-time-slot.drop-target { background: rgba(196, 82, 60, 0.10); }
+/* Gutter time labels — vertically centered */
+.w-14 .cal-time-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px !important;
+  padding-top: 0 !important;
+}
+/* Fold bar in gutter */
+.w-14 .cal-fold-bar { font-size: 9px; padding: 2px 8px !important; }
 
 /* ── Calendar Events ── */
 .cal-event {
@@ -351,30 +425,34 @@ body::after {
   border-radius: 14px;
   padding: 16px;
   min-height: 200px;
-  box-shadow: var(--shadow-sm);
+  background: #fefcf7;
+  box-shadow: var(--shadow-md);
+  border: 1px solid #f0e8dc;
+  border-left-width: 3px;
+  transition: box-shadow 0.2s, transform 0.15s;
 }
-.quadrant-q1 { background: #fef2ee; border: 1px solid #fad4c8; }
-.quadrant-q2 { background: #f0f4ff; border: 1px solid #c8d8fa; }
-.quadrant-q3 { background: #fffbeb; border: 1px solid #fde68a; }
-.quadrant-q4 { background: #f8f4ef; border: 1px solid #e6ddd0; }
-.dark .quadrant-q1 { background: rgba(196,82,60,0.08); border-color: rgba(196,82,60,0.25); }
-.dark .quadrant-q2 { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
-.dark .quadrant-q3 { background: rgba(212,162,54,0.08); border-color: rgba(212,162,54,0.2); }
-.dark .quadrant-q4 { background: rgba(140,126,110,0.08); border-color: rgba(140,126,110,0.2); }
+.quadrant:hover { box-shadow: var(--shadow-lg); }
+.quadrant-q1 { border-left-color: var(--color-quadrant-1); }
+.quadrant-q2 { border-left-color: var(--color-quadrant-2); }
+.quadrant-q3 { border-left-color: var(--color-quadrant-3); }
+.quadrant-q4 { border-left-color: var(--color-quadrant-4); }
+.dark .quadrant { background: var(--color-surface) !important; border-color: var(--color-border) !important; }
 
 /* ── Todo Item ── */
 .todo-item {
-  background: var(--color-surface);
+  background: #fefcf7;
   border-radius: 10px;
   padding: 10px 12px;
   margin-bottom: 6px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.035);
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.15s;
-  border: 1px solid var(--color-border);
+  border: 1px solid #f0e8dc;
+  border-left-width: 3px;
 }
 .todo-item:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .todo-item.completed { opacity: 0.45; }
+.dark .todo-item { background: var(--color-surface) !important; border-color: var(--color-border) !important; }
 
 /* ── Subtask ── */
 .subtask-item {
@@ -446,7 +524,7 @@ body::after {
 #modalContent button:active { transform: translateY(0); }
 
 /* ── Calendar wrapper ── */
-#calendarBody { border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; border: 1px solid var(--color-border); }
+#calendarBody { border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-md); transition: box-shadow 0.2s; border: 1px solid var(--color-border); }
 
 /* ── Stat Cards ── */
 .stat-card {
@@ -492,7 +570,7 @@ body::after {
 
 /* ── Drag States ── */
 .todo-item.dragging { opacity: 0.4; }
-.quadrant.drag-over { outline: 2px dashed var(--color-primary); outline-offset: -2px; background: var(--color-primary-light) !important; }
+.quadrant.drag-over { background: var(--color-primary-light) !important; }
 .quadrant.drag-over .todo-item { pointer-events: none; }
 .todo-drag { font-size: 14px; line-height: 1; transition: color 0.15s; }
 
