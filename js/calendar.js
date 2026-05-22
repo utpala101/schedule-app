@@ -60,7 +60,7 @@ const Calendar = {
     else if (this.view === 'week') this.renderWeek();
     else this.renderDay();
   },
-  _allItems() { return [...this.items,...(this._recurClones||[])]; },
+  _allItems() { return [...this.items.filter(i=>!i.recur?.type),...(this._recurClones||[])]; },
 
   getViewStartEnd() {
     const d = new Date(this.currentDate);
