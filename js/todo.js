@@ -300,7 +300,7 @@ const Todo = {
     if (!end && start) {
       const dh = parseInt(document.getElementById('fmDurH')?.value)||0;
       const dm = parseInt(document.getElementById('fmDurM')?.value)||0;
-      if (dh||dm) { const d=new Date(start); d.setHours(d.getHours()+dh,d.getMinutes()+dm); end=d.toISOString().slice(0,16); }
+      if (dh||dm) { const d=new Date(start); d.setHours(d.getHours()+dh,d.getMinutes()+dm); end=Calendar._locStr(d); }
     }
     return {
       title,

@@ -322,7 +322,7 @@ const Calendar = {
     if (!end && start) {
       const dh = parseInt(document.getElementById('fmDurH')?.value)||0;
       const dm = parseInt(document.getElementById('fmDurM')?.value)||0;
-      if (dh||dm) { const d=new Date(start); d.setHours(d.getHours()+dh,d.getMinutes()+dm); end=d.toISOString().slice(0,16); }
+      if (dh||dm) { const d=new Date(start); d.setHours(d.getHours()+dh,d.getMinutes()+dm); end=Calendar._locStr(d); }
     }
     return {
       title,
@@ -335,6 +335,7 @@ const Calendar = {
       completed: document.getElementById('fmDone')?.checked || false
     };
   },
+  _locStr(d) { const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); },
   _durEndToDur() {
     const s=document.getElementById('fmStart')?.value, e=document.getElementById('fmEnd')?.value;
     if (s&&e) { const d=new Date(e)-new Date(s);
@@ -343,7 +344,7 @@ const Calendar = {
   _durDurToEnd() {
     const s=document.getElementById('fmStart')?.value;
     const h=parseInt(document.getElementById('fmDurH')?.value)||0, m=parseInt(document.getElementById('fmDurM')?.value)||0;
-    if (s&&(h||m)) { const d=new Date(s); d.setHours(d.getHours()+h,d.getMinutes()+m); document.getElementById('fmEnd').value=d.toISOString().slice(0,16); }
+    if (s&&(h||m)) { const d=new Date(s); d.setHours(d.getHours()+h,d.getMinutes()+m); document.getElementById('fmEnd').value=Calendar._locStr(d); }
   },
 
   createEvent(date, hour) {
@@ -472,7 +473,7 @@ const Calendar = {
         if (ev) {
           if (date !== ev.start.slice(0,10)) {
             ev.start = `${date}T${ev.start.slice(11)}`;
-            if (ev.end) ev.end = new Date(new Date(ev.start).getTime() + new Date(ev.end) - new Date(ev.start)).toISOString().slice(0,16);
+            if (ev.end) ev.end = Calendar._locStr(new Date(new Date(ev.start).getTime() + new Date(ev.end) - new Date(ev.start)));
           } else if (parseInt(hour) !== parseInt(ev.start.slice(11,13))) {
             const oh = parseInt(ev.start.slice(11,13));
             ev.start = `${date}T${hour.padStart(2,'0')}:${ev.start.slice(14,16)}`;
