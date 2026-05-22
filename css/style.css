@@ -485,10 +485,13 @@ body::after {
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 #modalContent {
+  display: flex; flex-direction: column;
   box-shadow: var(--shadow-xl);
   border-radius: 16px;
   animation: modalSlide 0.25s ease-out;
 }
+.modal-body { flex: 1; overflow-y: auto; min-height: 0; }
+#modalContent > .flex:last-child { flex-shrink: 0; }
 @keyframes modalSlide {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }

@@ -254,6 +254,7 @@ const Todo = {
     }
     const rec = item?.recur||{}; const rt=rec.type||'';
     return `
+      <div class="modal-body">
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
         <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="待办内容"></div>
@@ -308,7 +309,7 @@ const Todo = {
           </div>
         </div>
         ${item ? `<div class="flex items-center gap-2 pt-1"><input type="checkbox" id="fmDone" ${item.completed?'checked':''} class="w-4 h-4"><label for="fmDone" class="text-sm">标记为已完成</label></div>` : ''}
-      </div>`;
+      </div></div>`;
   },
 
   _readForm() {
