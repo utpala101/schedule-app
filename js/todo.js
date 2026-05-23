@@ -245,7 +245,7 @@ const Todo = {
     const en = item ? (item.end||'') : '';
     const dd = item ? (item.dueDate||'') : '';
     const tg = item ? (item.tags||[]).join(', ') : '';
-    const sb = item ? (item.subtasks||[]).map(s=>s.title).join('\n') : '';
+    const sb = item ? item.subtasks||[] : [];
     const nt = item ? (item.notes||'') : '';
     let durH=0, durM=0;
     if (item && item.start && item.end) {
@@ -257,9 +257,9 @@ const Todo = {
       <div class="modal-body">
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
-        <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="待办内容"></div>
+        <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="待办内容" oninput="document.getElementById('fmTitleError')?.classList.add('hidden')"><span id="fmTitleError" class="hidden text-xs text-red-500 mt-1 block">请输入标题</span></div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durEndToDur()"></div>
+          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durDurToEnd()"></div>
           <div><label class="block text-sm font-medium mb-1">结束</label><input type="datetime-local" id="fmEnd" value="${en}" onchange="Calendar._durEndToDur()"></div>
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -286,7 +286,19 @@ const Todo = {
           <div><label class="block text-sm font-medium mb-1">截止日期</label><input type="date" id="fmDue" value="${dd}"></div>
         </div>
         <div><label class="block text-sm font-medium mb-1">标签（逗号分隔）</label><input id="fmTags" value="${tg}" placeholder="工作, 学习"></div>
-        <div><label class="block text-sm font-medium mb-1">子任务（每行一个）</label><textarea id="fmSubtasks" rows="2" placeholder="子任务1\n子任务2">${sb}</textarea></div>
+        <div><label class="block text-sm font-medium mb-1">子任务</label>
+          <div id="subtaskList" class="space-y-1 mb-2">
+            ${sb.map(s => `<div class="subtask-row flex items-center gap-1">
+              <input type="checkbox" ${s.completed?'checked':''} class="subtask-cb w-4 h-4 shrink-0">
+              <input type="text" value="${Calendar._e(s.title)}" class="subtask-input flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800">
+              <span class="subtask-del cursor-pointer text-gray-400 hover:text-red-500 text-sm shrink-0 px-0.5" onclick="this.closest('.subtask-row').remove()">✕</span>
+            </div>`).join('')}
+          </div>
+          <div class="flex gap-1">
+            <input id="newSubtaskTitle" placeholder="添加子任务" class="flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800" onkeydown="if(event.key==='Enter')Calendar._addSubtask()">
+            <button type="button" class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded text-sm hover:bg-indigo-200 dark:hover:bg-indigo-800 shrink-0" onclick="Calendar._addSubtask()">+</button>
+          </div>
+        </div>
         <div><label class="block text-sm font-medium mb-1">备注</label><textarea id="fmNotes" rows="2" placeholder="自由文本备注...">${nt}</textarea></div>
         <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
           <div class="flex items-center gap-2 mb-1">
@@ -314,8 +326,27 @@ const Todo = {
 
   _readForm() {
     const title = document.getElementById('fmTitle').value.trim();
-    if (!title) return alert('请输入标题');
-    const subs = document.getElementById('fmSubtasks').value.trim().split('\n').filter(s=>s.trim()).map(s=>({title:s.trim(),completed:false}));
+    if (!title) {
+      const err = document.getElementById('fmTitleError');
+      if (err) err.classList.remove('hidden');
+      document.getElementById('fmTitle')?.focus();
+      return;
+    }
+    const err = document.getElementById('fmTitleError');
+    if (err) err.classList.add('hidden');
+    const subtaskRows = document.querySelectorAll('#subtaskList .subtask-row');
+    const subs = Array.from(subtaskRows).map(row => ({
+      title: row.querySelector('.subtask-input').value.trim(),
+      completed: row.querySelector('.subtask-cb').checked
+    })).filter(s => s.title);
+    let done = false;
+    const fmDoneEl = document.getElementById('fmDone');
+    if (fmDoneEl) {
+      done = fmDoneEl.checked;
+      subs.forEach(s => s.completed = done);
+    } else {
+      done = subs.length > 0 && subs.every(s => s.completed);
+    }
     const tags = document.getElementById('fmTags').value.trim().split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     let end = document.getElementById('fmEnd').value || '';
     const start = document.getElementById('fmStart').value;
@@ -333,7 +364,7 @@ const Todo = {
       tags, subtasks: subs,
       notes: document.getElementById('fmNotes').value.trim(),
       recur: Calendar._recurFromForm(),
-      completed: document.getElementById('fmDone')?.checked || false
+      completed: done
     };
   },
 
@@ -370,12 +401,7 @@ const Todo = {
     document.getElementById('fmSave').onclick = async () => {
       const data = this._readForm();
       if (!data) return;
-      const subs = data.subtasks.map((s,i) => {
-        const old = item.subtasks?.[i];
-        return { title: s.title, completed: old?.completed || false };
-      });
       Object.assign(item, data);
-      item.subtasks = subs;
       await DB.put('items', item);
       await this.loadItems();
       document.getElementById('modalOverlay').classList.add('hidden'); this.render();

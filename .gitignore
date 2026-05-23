@@ -4,6 +4,7 @@ Thumbs.db
 *.log
 scheduler-export-*.json
 scheduler-full-backup-*.json
+scheduler-data.json
 package.json
 package-lock.json
 test/

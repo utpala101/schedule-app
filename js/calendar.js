@@ -170,7 +170,7 @@ const Calendar = {
         for (const ev of de) {
           const tp = this._topPx(ev,24,0,true);
           const hp = this._hPx(ev,24,0,true);
-          html += `<div class="cal-event ${ev.completed?'cal-event-done':''}${ev._isRecurrence?' cal-event-recur':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+          html += Calendar._eventHTML(ev, tp, hp);
         }
         if(its) html+=this._timeHTML(24,0,true);
       } else {
@@ -182,7 +182,7 @@ const Calendar = {
           if (eh>=ws && eh<we) {
             const tp = this._topPx(ev,we-ws,ws,false);
             const hp = this._hPx(ev,we-ws,ws,false);
-            html += `<div class="cal-event ${ev.completed?'cal-event-done':''}${ev._isRecurrence?' cal-event-recur':''}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">${ev.completed?'✓ ':''}${ev.title}</div>`;
+            html += Calendar._eventHTML(ev, tp, hp);
           }
         }
         html+=`<div class="cal-fold-bar ${lc>0?'has-items':''}" onclick="Calendar._toggleExpand()" style="min-height:${fh}px;"><span class="fold-line"></span><span>${lc>0?'后 '+lc+' 项':'22:00-23:59'}</span><span class="fold-line"></span></div>`;
@@ -270,6 +270,63 @@ const Calendar = {
     try{if(p.showPicker)p.showPicker();else p.click();}catch(e){p.click();}
   },
 
+  // ──────── Helpers ────────
+  _eventHTML(ev, tp, hp) {
+    const done = ev.completed ? 'cal-event-done' : '';
+    const recur = ev._isRecurrence ? ' cal-event-recur' : '';
+    const check = ev.completed ? '✓ ' : '';
+    return `<div class="cal-event ${done}${recur}" data-id="${ev.id}" style="top:${tp}px;height:${hp}px;border-left-color:${QUAD_COLORS[ev.quadrant||0]}">
+      <span class="cal-ev-acts"><span class="cal-ev-act cal-ev-done" data-act="done">${ev.completed?'↺':'✓'}</span><span class="cal-ev-act cal-ev-del" data-act="del">✕</span></span>
+      <span class="cal-ev-title">${check}${Calendar._e(ev.title)}</span>
+      <span class="cal-ev-resize cal-ev-resize-top" data-resize="start"></span>
+      <span class="cal-ev-resize cal-ev-resize-bot" data-resize="end"></span>
+    </div>`;
+  },
+  _e(s) { return (s||'').replace(/["<>&]/g,c=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c])); },
+
+  async _quickToggleDone(id) {
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+    item.completed = !item.completed;
+    if (item.subtasks?.length) item.subtasks.forEach(s => s.completed = item.completed);
+    await DB.put('items', item);
+    this.items = (await DB.getAll('items')).filter(i=>i.start);
+    this.render();
+  },
+
+  async _quickDelete(id) {
+    const ri = this._isRecurInstance(id);
+    const item = ri ? ri.master : this.items.find(i=>i.id===id);
+    if (!item) return;
+    if (ri) { this._deleteRecurring(item, ri.date); return; }
+    if (!(await this.showConfirm('确定要删除此项？'))) return;
+    await DB.del('items', item.id);
+    this.items = this.items.filter(i=>i.id!==item.id);
+    this.render();
+  },
+  _addSubtask() {
+    const t = document.getElementById('newSubtaskTitle');
+    const v = t?.value.trim();
+    if (!v) return;
+    const row = document.createElement('div');
+    row.className = 'subtask-row flex items-center gap-1';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.className = 'subtask-cb w-4 h-4 shrink-0';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = v;
+    inp.className = 'subtask-input flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800';
+    const del = document.createElement('span');
+    del.className = 'subtask-del cursor-pointer text-gray-400 hover:text-red-500 text-sm shrink-0 px-0.5';
+    del.textContent = '✕';
+    del.onclick = () => row.remove();
+    row.append(cb, inp, del);
+    document.getElementById('subtaskList').appendChild(row);
+    const fmDone = document.getElementById('fmDone');
+    if (fmDone) fmDone.checked = false;
+    t.value = '';
+    t.focus();
+  },
+
   // ──────── Unified Item Form ────────
   _itemFormHTML(item, titleText) {
     const q = item ? (item.quadrant||'') : '';
@@ -277,7 +334,7 @@ const Calendar = {
     const en = item ? (item.end||'') : '';
     const dd = item ? (item.dueDate||'') : '';
     const tg = item ? (item.tags||[]).join(', ') : '';
-    const sb = item ? (item.subtasks||[]).map(s=>s.title).join('\n') : '';
+    const sb = item ? item.subtasks||[] : [];
     const nt = item ? (item.notes||'') : '';
     const done = item ? item.completed : false;
     let durH=0, durM=0;
@@ -290,9 +347,9 @@ const Calendar = {
       <div class="modal-body">
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
-        <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="事件标题"></div>
+        <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="事件标题" oninput="document.getElementById('fmTitleError')?.classList.add('hidden')"><span id="fmTitleError" class="hidden text-xs text-red-500 mt-1 block">请输入标题</span></div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durEndToDur()"></div>
+          <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durDurToEnd()"></div>
           <div><label class="block text-sm font-medium mb-1">结束</label><input type="datetime-local" id="fmEnd" value="${en}" onchange="Calendar._durEndToDur()"></div>
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -319,7 +376,19 @@ const Calendar = {
           <div><label class="block text-sm font-medium mb-1">截止日期</label><input type="date" id="fmDue" value="${dd}"></div>
         </div>
         <div><label class="block text-sm font-medium mb-1">标签（逗号分隔）</label><input id="fmTags" value="${tg}" placeholder="工作, 学习"></div>
-        <div><label class="block text-sm font-medium mb-1">子任务（每行一个）</label><textarea id="fmSubtasks" rows="2" placeholder="子任务1\n子任务2">${sb}</textarea></div>
+        <div><label class="block text-sm font-medium mb-1">子任务</label>
+          <div id="subtaskList" class="space-y-1 mb-2">
+            ${sb.map(s => `<div class="subtask-row flex items-center gap-1">
+              <input type="checkbox" ${s.completed?'checked':''} class="subtask-cb w-4 h-4 shrink-0">
+              <input type="text" value="${Calendar._e(s.title)}" class="subtask-input flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800">
+              <span class="subtask-del cursor-pointer text-gray-400 hover:text-red-500 text-sm shrink-0 px-0.5" onclick="this.closest('.subtask-row').remove()">✕</span>
+            </div>`).join('')}
+          </div>
+          <div class="flex gap-1">
+            <input id="newSubtaskTitle" placeholder="添加子任务" class="flex-1 text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800" onkeydown="if(event.key==='Enter')Calendar._addSubtask()">
+            <button type="button" class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded text-sm hover:bg-indigo-200 dark:hover:bg-indigo-800 shrink-0" onclick="Calendar._addSubtask()">+</button>
+          </div>
+        </div>
         <div><label class="block text-sm font-medium mb-1">备注</label><textarea id="fmNotes" rows="2" placeholder="自由文本备注...">${nt}</textarea></div>
         <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
           <div class="flex items-center gap-2 mb-1">
@@ -347,9 +416,27 @@ const Calendar = {
 
   _readItemForm() {
     const title = document.getElementById('fmTitle').value.trim();
-    if (!title) return alert('请输入标题');
-    const subtaskLines = document.getElementById('fmSubtasks').value.trim();
-    const subtasks = subtaskLines ? subtaskLines.split('\n').filter(s=>s.trim()).map(s=>({title:s.trim(),completed:false})) : [];
+    if (!title) {
+      const err = document.getElementById('fmTitleError');
+      if (err) err.classList.remove('hidden');
+      document.getElementById('fmTitle')?.focus();
+      return;
+    }
+    const err = document.getElementById('fmTitleError');
+    if (err) err.classList.add('hidden');
+    const subtaskRows = document.querySelectorAll('#subtaskList .subtask-row');
+    const subtasks = Array.from(subtaskRows).map(row => ({
+      title: row.querySelector('.subtask-input').value.trim(),
+      completed: row.querySelector('.subtask-cb').checked
+    })).filter(s => s.title);
+    let done = false;
+    const fmDoneEl = document.getElementById('fmDone');
+    if (fmDoneEl) {
+      done = fmDoneEl.checked;
+      subtasks.forEach(s => s.completed = done);
+    } else {
+      done = subtasks.length > 0 && subtasks.every(s => s.completed);
+    }
     const tags = document.getElementById('fmTags').value.trim().split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     let end = document.getElementById('fmEnd').value || '';
     const start = document.getElementById('fmStart').value;
@@ -367,7 +454,7 @@ const Calendar = {
       tags, subtasks,
       notes: document.getElementById('fmNotes').value.trim(),
       recur: this._recurFromForm(),
-      completed: document.getElementById('fmDone')?.checked || false
+      completed: done
     };
   },
   _locStr(d) { const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); },
@@ -540,13 +627,36 @@ const Calendar = {
 
   // ──────── Shared ────────
   bindEventClicks() {
-    document.querySelectorAll('.cal-event').forEach(el => {
-      el.addEventListener('click', (e) => { e.stopPropagation(); this.editEvent(el.dataset.id); });
-    });
+    // Use one delegated listener — safe to call every render
+    const body = document.getElementById('calendarBody');
+    if (!body) return;
+    // Remove old listener to prevent duplicates
+    const handler = Calendar._clickHandler;
+    if (handler) body.removeEventListener('click', handler);
+    Calendar._clickHandler = (e) => {
+      if (Calendar._preventEventClick) { Calendar._preventEventClick = false; return; }
+      const act = e.target.closest('.cal-ev-act');
+      if (act) {
+        const evEl = act.closest('.cal-event');
+        if (!evEl) return;
+        e.stopPropagation();
+        const id = evEl.dataset.id;
+        if (act.dataset.act === 'done') Calendar._quickToggleDone(id);
+        else if (act.dataset.act === 'del') Calendar._quickDelete(id);
+        return;
+      }
+      const ev = e.target.closest('.cal-event');
+      if (ev) { e.stopPropagation(); Calendar.editEvent(ev.dataset.id); }
+    };
+    body.addEventListener('click', Calendar._clickHandler);
   },
   bindCellClicks() {
-    document.querySelectorAll('.cal-day-cell, .cal-time-slot').forEach(el => {
-      el.addEventListener('click', (e) => { if (e.target.closest('.cal-event')) return; this.createEvent(el.dataset.date||Calendar._locDate(this.currentDate), el.dataset.hour||'12'); });
+    document.querySelectorAll('.cal-day-cell').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (Calendar._preventSlotClick) { Calendar._preventSlotClick = false; return; }
+        if (e.target.closest('.cal-event')) return;
+        this.createEvent(el.dataset.date||Calendar._locDate(this.currentDate), '12');
+      });
     });
   },
 
@@ -554,27 +664,68 @@ const Calendar = {
     if (this._dragInitDone) return;
     this._dragInitDone = true;
     let dragEl = null, currentSlot = null;
-    let dragStartX = 0, dragStartY = 0, dragMoved = false;
+    let dragStartX = 0, dragStartY = 0, dragMoved = false, dragIsMonth = false;
+    let drawStart = null, drawEndHour = null, drawMoved = false;
+    let resizeEdge = null, resizeItem = null, resizeMoved = false, resizeHour = undefined;
 
     const getSlotAtPoint = (x, y) => {
-      // Find the calendar grid container
       const grid = document.getElementById('calendarBody');
       if (!grid) return null;
-      // Find which day column the mouse is over (by x coordinate)
       const cols = Array.from(grid.querySelectorAll('.flex-1.relative'));
       const col = cols.find(c => { const r=c.getBoundingClientRect(); return x>=r.left && x<r.right; });
       if (!col) return null;
-      // Get column's date from any slot
       const slots = col.querySelectorAll('.cal-time-slot');
       if (!slots.length) return null;
-      // Compute which hour slot by y coordinate relative to first slot
       const sr = slots[0].getBoundingClientRect();
       const sh = sr.height || 40;
       const idx = Math.max(0, Math.min(Math.round((y - sr.top) / sh), slots.length - 1));
       return slots[idx];
     };
 
+    const clearDrawHighlight = () => {
+      if (drawStart && drawStart.col) {
+        drawStart.col.querySelectorAll('.cal-slot-selected').forEach(s => s.classList.remove('cal-slot-selected'));
+      }
+    };
+    const updateDrawHighlight = () => {
+      if (!drawStart || !drawStart.col) return;
+      const minH = Math.min(drawStart.hour, drawEndHour);
+      const maxH = Math.max(drawStart.hour, drawEndHour);
+      drawStart.col.querySelectorAll('.cal-time-slot').forEach(s => {
+        const h = parseInt(s.dataset.hour);
+        s.classList.toggle('cal-slot-selected', !isNaN(h) && h >= minH && h <= maxH);
+      });
+    };
+
     const onStart = (e) => {
+      // Resize edge drag (week/day events only)
+      const resize = e.target.closest('.cal-ev-resize');
+      if (resize) {
+        const evEl = resize.closest('.cal-event');
+        if (!evEl || evEl.closest('.cal-day-cell')) return;
+        e.preventDefault();
+        const item = Calendar.items.find(i => i.id === evEl.dataset.id);
+        if (!item) return;
+        resizeEdge = resize.dataset.resize;
+        resizeItem = item;
+        resizeMoved = false;
+        resizeHour = undefined;
+        dragEl = evEl;
+        return;
+      }
+      // Slot draw mode: mousedown on empty time slot
+      const slot = e.target.closest('.cal-time-slot');
+      if (slot && !e.target.closest('.cal-event')) {
+        drawStart = {
+          date: slot.dataset.date,
+          hour: parseInt(slot.dataset.hour),
+          col: slot.closest('.flex-1.relative')
+        };
+        drawEndHour = drawStart.hour;
+        drawMoved = false;
+        return;
+      }
+      // Event drag mode
       const ev = e.target.closest('.cal-event');
       if (!ev) return;
       e.preventDefault();
@@ -582,9 +733,55 @@ const Calendar = {
       dragStartY = e.clientY;
       dragMoved = false;
       dragEl = ev;
+      dragIsMonth = !!ev.closest('.cal-day-cell');
     };
 
     const onMove = (e) => {
+      if (drawStart) {
+        e.preventDefault();
+        const slots = drawStart.col?.querySelectorAll('.cal-time-slot');
+        if (!slots?.length) return;
+        const sr = slots[0].getBoundingClientRect();
+        if (!sr) return;
+        const sh = sr.height || 40;
+        const idx = Math.max(0, Math.min(Math.round((e.clientY - sr.top) / sh), slots.length - 1));
+        const newHour = parseInt(slots[idx].dataset.hour);
+        if (isNaN(newHour)) return;
+        if (newHour !== drawStart.hour) drawMoved = true;
+        if (newHour !== drawEndHour) {
+          drawEndHour = newHour;
+          updateDrawHighlight();
+        }
+        return;
+      }
+
+      if (resizeEdge) {
+        e.preventDefault();
+        const col = dragEl.closest('.flex-1.relative');
+        if (!col) return;
+        const slots = col.querySelectorAll('.cal-time-slot');
+        if (!slots.length) return;
+        const sr = slots[0].getBoundingClientRect();
+        const sh = sr.height || 40;
+        const idx = Math.max(0, Math.min(Math.round((e.clientY - sr.top) / sh), slots.length - 1));
+        const targetSlot = slots[idx];
+        if (!targetSlot) return;
+        const hr = parseInt(targetSlot.dataset.hour);
+        if (isNaN(hr)) return;
+        const colRect = col.getBoundingClientRect();
+        const slotRect = targetSlot.getBoundingClientRect();
+        if (resizeEdge === 'start') {
+          const newTop = slotRect.top - colRect.top;
+          const curBot = parseFloat(dragEl.style.top) + parseFloat(dragEl.style.height);
+          dragEl.style.top = newTop + 'px';
+          dragEl.style.height = Math.max(curBot - newTop, 18) + 'px';
+        } else {
+          dragEl.style.height = Math.max(slotRect.bottom - colRect.top - parseFloat(dragEl.style.top), 18) + 'px';
+        }
+        resizeMoved = true;
+        resizeHour = hr;
+        return;
+      }
       if (!dragEl) return;
       if (!dragMoved) {
         if (Math.abs(e.clientX - dragStartX) < 2 && Math.abs(e.clientY - dragStartY) < 2) return;
@@ -592,22 +789,92 @@ const Calendar = {
         dragEl.classList.add('dragging');
         e.preventDefault();
       }
-      const slot = getSlotAtPoint(e.clientX, e.clientY);
-      if (slot && slot !== currentSlot) {
-        if (currentSlot) currentSlot.classList.remove('drop-target');
-        slot.classList.add('drop-target');
-        currentSlot = slot;
+      if (dragIsMonth) {
+        const target = document.elementsFromPoint(e.clientX, e.clientY)
+          .find(el => el.classList.contains('cal-day-cell'));
+        if (target && target !== currentSlot) {
+          if (currentSlot) currentSlot.classList.remove('drop-target');
+          target.classList.add('drop-target');
+          currentSlot = target;
+        }
+      } else {
+        const slot = getSlotAtPoint(e.clientX, e.clientY);
+        if (slot && slot !== currentSlot) {
+          if (currentSlot) currentSlot.classList.remove('drop-target');
+          slot.classList.add('drop-target');
+          currentSlot = slot;
+        }
       }
     };
 
-    const onEnd = () => {
-      if (dragEl) dragEl.classList.remove('dragging');
-      if (currentSlot) currentSlot.classList.remove('drop-target');
-      dragEl = null; currentSlot = null; dragMoved = false;
-    };
-
     const onDrop = (e) => {
+      if (drawStart) {
+        if (drawMoved && drawEndHour !== null) {
+          const startH = Math.min(drawStart.hour, drawEndHour);
+          const endH = Math.max(drawStart.hour, drawEndHour) + 1;
+          Calendar._createEventWithRange(drawStart.date, startH, endH);
+        } else if (drawStart.hour !== undefined) {
+          this.createEvent(drawStart.date, drawStart.hour);
+        }
+        clearDrawHighlight();
+        drawStart = null; drawEndHour = null; drawMoved = false;
+        return;
+      }
+
+      if (resizeEdge && resizeItem) {
+        if (resizeMoved && resizeHour !== undefined) {
+          const slot = getSlotAtPoint(e.clientX, e.clientY);
+          if (slot && slot.dataset.hour !== undefined) {
+            const hr = parseInt(slot.dataset.hour);
+            const date = slot.dataset.date || resizeItem.start.slice(0,10);
+            if (resizeEdge === 'start') {
+              const ns = `${date}T${hr.toString().padStart(2,'0')}:00`;
+              const ne = resizeItem.end || Calendar._locStr(new Date(new Date(resizeItem.start).getTime()+3600000));
+              if (new Date(ns) < new Date(ne)) {
+                resizeItem.start = ns;
+                resizeItem.end = Calendar._locStr(new Date(new Date(ns).getTime() + (new Date(ne)-new Date(ns))));
+              }
+            } else {
+              const ne = `${date}T${(hr+1).toString().padStart(2,'0')}:00`;
+              if (new Date(ne) > new Date(resizeItem.start)) {
+                resizeItem.end = ne;
+              }
+            }
+            DB.put('items', resizeItem).then(() => Calendar.loadItems().then(()=>Calendar.render()));
+          }
+        }
+        if (resizeMoved) {
+          Calendar._preventEventClick = true;
+          setTimeout(() => Calendar._preventEventClick = false, 200);
+        }
+        resizeEdge = null; resizeItem = null; resizeMoved = false; resizeHour = undefined;
+        onEnd();
+        return;
+      }
+
       if (!dragEl || !dragMoved) { onEnd(); return; }
+
+      if (dragIsMonth) {
+        Calendar._preventEventClick = true;
+        setTimeout(() => Calendar._preventEventClick = false, 200);
+        const targetCell = document.elementsFromPoint(e.clientX, e.clientY)
+          .find(el => el.classList.contains('cal-day-cell')) || currentSlot;
+        if (targetCell && targetCell.dataset.date) {
+          const id = dragEl.dataset.id;
+          const ev = Calendar.items.find(i => i.id === id);
+          if (ev) {
+            const nd = targetCell.dataset.date;
+            if (nd !== ev.start.slice(0,10)) {
+              ev.start = nd + ev.start.slice(10);
+              if (ev.end) ev.end = nd + ev.end.slice(10);
+              DB.put('items', ev).then(() => Calendar.loadItems().then(()=>Calendar.render()));
+            }
+          }
+        }
+        onEnd();
+        return;
+      }
+
       const slot = getSlotAtPoint(e.clientX, e.clientY) || currentSlot;
       if (!slot || !slot.dataset) { onEnd(); return; }
       const id = dragEl.dataset.id, date = slot.dataset.date, hour = slot.dataset.hour;
@@ -630,18 +897,77 @@ const Calendar = {
       onEnd();
     };
 
+    const onEnd = () => {
+      if (drawStart) {
+        clearDrawHighlight();
+        drawStart = null; drawEndHour = null; drawMoved = false;
+        return;
+      }
+      if (dragEl) dragEl.classList.remove('dragging');
+      if (currentSlot) currentSlot.classList.remove('drop-target');
+      dragEl = null; currentSlot = null; dragMoved = false; dragIsMonth = false;
+      resizeEdge = null; resizeItem = null; resizeMoved = false; resizeHour = undefined;
+    };
+
     document.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onDrop);
-    // In case mouse leaves the document while dragging
     document.addEventListener('mouseleave', onEnd);
+  },
+
+  _createEventWithRange(date, startHour, endHour) {
+    const startStr = `${date}T${startHour.toString().padStart(2,'0')}:00`;
+    const endStr = `${date}T${endHour.toString().padStart(2,'0')}:00`;
+    const html = this._itemFormHTML(null, '新建') + `<div class="flex gap-2 mt-4">
+      <button id="fmSave" class="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600">保存</button>
+      <button id="fmCancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+    </div>`;
+    this.showModal(html);
+    document.getElementById('fmStart').value = startStr;
+    document.getElementById('fmEnd').value = endStr;
+    const durH = endHour - startHour;
+    const fmDH = document.getElementById('fmDurH');
+    const fmDM = document.getElementById('fmDurM');
+    if (fmDH) fmDH.value = durH;
+    if (fmDM) fmDM.value = 0;
+    document.getElementById('fmSave').onclick = async () => {
+      const data = this._readItemForm();
+      if (!data) return;
+      const item = { ...data, id: 'ev_'+Date.now(), created: Calendar._locDate(new Date()) };
+      await DB.put('items', item);
+      this.items.push(item);
+      document.getElementById('modalOverlay').classList.add('hidden');
+      this.items = (await DB.getAll('items')).filter(i=>i.start);
+      this.render();
+    };
+    document.getElementById('fmCancel').onclick = () => document.getElementById('modalOverlay').classList.add('hidden');
   },
 
   showModal(html) {
     const modal = document.getElementById('modalOverlay');
     document.getElementById('modalContent').innerHTML = html;
     modal.classList.remove('hidden');
-    modal.onclick = (e) => { if(e.target===modal) modal.classList.add('hidden'); };
+    modal.onmousedown = (e) => { modal._clickOnOverlay = (e.target === modal); };
+    modal.onclick = (e) => { if(e.target===modal && modal._clickOnOverlay) modal.classList.add('hidden'); };
+    // Subtask auto-toggle: all checked -> main done checked
+    const subList = document.getElementById('subtaskList');
+    if (subList) {
+      subList.onchange = (e) => {
+        if (e.target.classList.contains('subtask-cb')) {
+          const allDone = Array.from(subList.querySelectorAll('.subtask-row')).every(r => r.querySelector('.subtask-cb').checked);
+          const fmDone = document.getElementById('fmDone');
+          if (fmDone) fmDone.checked = allDone;
+        }
+      };
+    }
+    // Main done toggles all subtask checkboxes
+    const fmDone = document.getElementById('fmDone');
+    if (fmDone) {
+      fmDone.onchange = () => {
+        const checked = fmDone.checked;
+        document.querySelectorAll('#subtaskList .subtask-cb').forEach(cb => cb.checked = checked);
+      };
+    }
   },
 
   showConfirm(msg) {

@@ -352,15 +352,15 @@ footer a:hover { text-decoration: underline; }
   <div class="label">Project Log</div>
   <h1>构建「日程工作台」<br>避坑手记</h1>
   <p class="subtitle">一个纯前端 SPA 从零到产品级的过程中，那些值得记住的教训</p>
-  <div class="meta">2026.05.22 &nbsp;·&nbsp; 全程约 6 小时 &nbsp;·&nbsp; 10 个文件 &nbsp;·&nbsp; ~1500 行代码</div>
+  <div class="meta">2026.05.22 &nbsp;·&nbsp; 全程约 8 小时 &nbsp;·&nbsp; 10 个文件 &nbsp;·&nbsp; ~1800 行代码</div>
 </header>
 
 <!-- ═══ STATS ═══ -->
 <div class="stats-grid">
   <div class="stat-item"><div class="num">10</div><div class="label">JS 文件</div></div>
-  <div class="stat-item"><div class="num">9</div><div class="label">已修复 Bug</div></div>
+  <div class="stat-item"><div class="num">14</div><div class="label">已修复 Bug</div></div>
   <div class="stat-item"><div class="num">504</div><div class="label">CSS 行数</div></div>
-  <div class="stat-item"><div class="num">3</div><div class="label">重构次数</div></div>
+  <div class="stat-item"><div class="num">5</div><div class="label">重构次数</div></div>
 </div>
 
 <!-- ═══ SECTION 1: Data Architecture ═══ -->
@@ -508,6 +508,28 @@ _topPx(ev, th, oh, abs) {
   </div>
 
   <div class="bug-card">
+    <span class="tag tag-bug">模态框</span>
+    <h3>文字选择松开鼠标触发了 backdrop 关闭</h3>
+    <p class="sub">onclick 在文字选择结束时也会触发</p>
+    <div class="symptom">在编辑弹窗内选中文字，鼠标拖到弹窗外松开——弹窗关闭了。用户只是想做选择，不是要关弹窗。</div>
+    <div class="cause">
+      <span class="cause-label">根因</span>
+      <code>modal.onclick</code> 判断 <code>e.target === modal</code> 就关闭。但文字选择时的 mouseup 如果落在 backdrop 上，click 事件正常触发——哪怕 mousedown 发生在弹窗内部。
+    </div>
+    <div class="fix">
+      <div class="code"><span class="comment">// 用 mousedown 标记点击起点，只有起点终点都在 backdrop 上才关</span>
+modal.onmousedown = (e) => {
+  modal._clickOnOverlay = (e.target === modal);
+};
+modal.onclick = (e) => {
+  <span class="keyword">if</span> (e.target === modal && modal._clickOnOverlay) {
+    modal.classList.add('hidden');
+  }
+};</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
     <span class="tag tag-perf">性能</span>
     <h3>渲染时重复注册 document 监听器</h3>
     <p class="sub">隐藏在「每次都正常执行」表象下的内存泄漏</p>
@@ -576,6 +598,41 @@ item.completed = was;
   </div>
 
   <div class="bug-card">
+    <span class="tag tag-bug">双向同步</span>
+    <h3>主任务 ↔ 子任务的完成状态同步</h3>
+    <p class="sub">四个边缘情况，四次修复</p>
+    <div class="symptom">子任务改成可勾选的 checkbox 后，出现了环环相扣的同步 bug：</div>
+    <div class="fix">
+      <strong>1. 完成所有子任务 → 主任务自动完成</strong>
+      <div class="code"><span class="comment">// 子任务列表的 change 事件，检测全部完成</span>
+subList.onchange = (e) => {
+  <span class="keyword">if</span> (e.target.classList.contains('subtask-cb')) {
+    <span class="keyword">const</span> allDone = Array.from(subList.querySelectorAll('.subtask-row'))
+      .every(r =&gt; r.querySelector('.subtask-cb').checked);
+    <span class="keyword">if</span> (fmDone) fmDone.checked = allDone;
+  }
+};</div>
+
+      <strong>2. 主任务勾选/取消 → 所有子任务同步</strong>
+      <div class="code">fmDone.onchange = () => {
+  document.querySelectorAll('#subtaskList .subtask-cb')
+    .forEach(cb =&gt; cb.checked = fmDone.checked);
+};</div>
+
+      <strong>3. 添加新子任务 → 主任务自动变为未完成</strong>
+      <div class="code"><span class="comment">// _addSubtask 中</span>
+<span class="keyword">if</span> (fmDone) fmDone.checked = <span class="keyword">false</span>;</div>
+
+      <strong>4. 保存时强制同步</strong>
+      <div class="code"><span class="comment">// fmDone 存在 → 所有子任务跟随主任务</span>
+<span class="keyword">if</span> (fmDoneEl) {
+  done = fmDoneEl.checked;
+  subtasks.forEach(s =&gt; s.completed = done);
+}</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
     <span class="tag tag-lesson">视图切换</span>
     <h3>刷新后永远回到日历页</h3>
     <p class="sub">单页应用需要记住用户上一次在哪个视图</p>
@@ -616,6 +673,31 @@ switchView(savedView);</div>
   </div>
 
   <div class="bug-card">
+    <span class="tag tag-lesson">内HTML vs DOM</span>
+    <h3>innerHTML 渲染 checkbox 时文字消失了</h3>
+    <p class="sub">动态创建子任务行，innerHTML 不绑定事件</p>
+    <div class="symptom">用 innerHTML 拼接子任务行 <code>&lt;input type="checkbox"&gt; &lt;input type="text"&gt;</code>，渲染后只有居中的 checkbox，文字输入框不显示。</div>
+    <div class="cause"><span class="cause-label">根因</span> CSS 中 <code>#subtaskList input { width: 100% }</code> 让 flex 布局中的 checkbox 也被撑满，文字框被挤到没空间。更深层原因：innerHTML 不能绑定事件，删除子任务需要事件委托，而委托代码不在 showModal 的初始化逻辑中。</div>
+    <div class="fix">
+      重写 <code>_addSubtask()</code>，用 DOM API 创建元素：
+      <div class="code"><span class="comment">// DOM createElement 替换 innerHTML</span>
+<span class="keyword">const</span> row = document.createElement('div');
+row.className = 'subtask-row flex items-center gap-1';
+<span class="keyword">const</span> cb = document.createElement('input');
+cb.type = 'checkbox'; cb.className = 'subtask-cb w-4 h-4 shrink-0';
+<span class="keyword">const</span> inp = document.createElement('input');
+inp.type = 'text'; inp.className = 'subtask-input flex-1 text-sm ...';
+<span class="keyword">const</span> del = document.createElement('span');
+del.textContent = '✕';
+del.onclick = () =&gt; row.remove();  <span class="comment">// 直接绑定</span>
+row.append(cb, inp, del);</div>
+      并追加 CSS 修复：
+      <div class="code"><span class="comment">/* 覆盖全局 input 宽度 */</span>
+#subtaskList input { width: auto; }</div>
+    </div>
+  </div>
+
+  <div class="bug-card">
     <span class="tag tag-lesson">UX 改进</span>
     <h3>删除确认框的「原生感」问题</h3>
     <p class="sub">浏览器 confirm() 的外观和行为与页面风格割裂</p>
@@ -640,9 +722,43 @@ showConfirm(msg) {
   </div>
 </section>
 
+<!-- ═══ SECTION 5.5: Form Logic ═══ -->
+<section>
+  <div class="section-title"><span class="num">06</span> 表单逻辑</div>
+  <div class="section-divider"></div>
+  <p class="section-desc">编辑表单中时间字段、子任务等交互逻辑的细致处理。</p>
+
+  <div class="bug-card">
+    <span class="tag tag-lesson">时间计算</span>
+    <h3>开始 ↔ 持续时间 ↔ 结束的三向联动</h3>
+    <p class="sub">修改开始时间应保持持续时间不变，修改结束时间则重新计算持续时间</p>
+    <div class="symptom">新建任务时设了开始 14:00、持续 2h、结束 16:00。然后改成开始 15:00——结束自动变成 17:00 了（保持持续 2h 不变）。但用户期望的是：修改开始时间 → 持续不变 → 结束时间自动跟随。而修改结束时间 → 重新算持续。</div>
+    <div class="fix">
+      两个方向不同的逻辑，对应两个 handler：
+      <div class="code"><span class="comment">// fmStart 变化 → 持续不变 → 重算结束</span>
+fmStart.onchange = () => {
+  <span class="keyword">const</span> dur = _getDur();   <span class="comment">// 读取当前持续</span>
+  <span class="keyword">const</span> end = _addMin(start, dur);
+  fmEnd.value = _fmt(end);
+};
+
+<span class="comment">// fmEnd 变化 → 重算持续 → 开始不变</span>
+fmEnd.onchange = () => {
+  <span class="keyword">const</span> dur = _diffMin(start, end);
+  fmDur.value = dur / 60;
+};</div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <h4>原则：表单字段的依赖方向要有向无环图</h4>
+    <p>三个互相关联的字段（A→B→C），必须确定唯一的「驱动字段」。不能让用户改了 A 却自动改 B 再改 C——用户会困惑。本例中持续是「锚点」，开始是「驱动」，结束是「被驱动」。只有结束是「可被用户直接调」的例外入口。</p>
+  </div>
+</section>
+
 <!-- ═══ SECTION 6: Timeline ═══ -->
 <section>
-  <div class="section-title"><span class="num">06</span> 修复时间线</div>
+  <div class="section-title"><span class="num">07</span> 修复时间线</div>
   <div class="section-divider"></div>
   <p class="section-desc">按时间顺序回顾今天的 bug 发现与修复过程。</p>
 
@@ -687,12 +803,44 @@ showConfirm(msg) {
       <div class="time">Stage 10</div>
       <p>美观度提升 — Warm Studio 配色 + 纸纹 + 动画 + 字体</p>
     </div>
+    <div class="timeline-item">
+      <div class="time">Stage 11</div>
+      <p>编辑弹窗文字选择误关闭 — onmousedown 标记 + onclick 双重检测</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 12</div>
+      <p>子任务 checkbox 双向同步 — 四个边缘情况逐步修复，DOM API 替代 innerHTML</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 13</div>
+      <p>时间字段三向联动 — 开始→持续不变→重算结束；结束→重算持续</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 14</div>
+      <p>月视图非本月日期对比度 — background opacity 0.015→0.04，日期数字 0.3</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 15</div>
+      <p>周/日视图拖拽画时间块 — 按住空白时间槽拖动直接划定起止，松开弹编辑窗</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 16</div>
+      <p>事件快捷操作按钮 — 悬停事件显示✓/✕，快速完成或删除，免进编辑弹窗</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 17</div>
+      <p>月视图拖拽改日期 — 拖拽事件到其他日期格，时间不变仅改日期</p>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Stage 18</div>
+      <p>周/日视图边缘拖拽调时间 — 上下边缘出现拖柄，拉拽修改起止时间</p>
+    </div>
   </div>
 </section>
 
 <!-- ═══ SECTION 7: Cheat Sheet ═══ -->
 <section>
-  <div class="section-title"><span class="num">07</span> 快速检查清单</div>
+  <div class="section-title"><span class="num">08</span> 快速检查清单</div>
   <div class="section-divider"></div>
   <p class="section-desc">下次写类似应用时，在提交前逐条检查。</p>
 
@@ -729,6 +877,14 @@ showConfirm(msg) {
       <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
         <span style="color:var(--color-primary);">☐</span>
         <span>有没有遗漏的 `confirm()`？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>modal 点击关闭用了 mousedown 标记？</span>
+      </div>
+      <div style="display:flex;align-items:start;gap:8px;font-size:14px;">
+        <span style="color:var(--color-primary);">☐</span>
+        <span>innerHTML 中包含了需要事件绑定的元素？</span>
       </div>
     </div>
   </div>
