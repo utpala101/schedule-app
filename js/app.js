@@ -22,19 +22,54 @@
       btn.classList.toggle('text-gray-600', !a);
       btn.classList.toggle('dark:text-gray-400', !a);
     });
+    // Bottom nav sync
+    document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
     currentView = view;
     localStorage.setItem('lastView', view);
 
     if (view === 'stats') Stats.refresh();
     if (view === 'calendar') Calendar.loadItems().then(() => Calendar.render());
     if (view === 'todo') {
-      Todo.currentDate = new Date(); // reset to today
+      Todo.currentDate = new Date();
       DB.getAll('items').then(items => { Todo.items = items; Todo.render(); });
     }
   }
 
+  // Desktop nav
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  // Mobile bottom nav
+  document.querySelectorAll('.mobile-nav-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeMobileSheet();
+      switchView(btn.dataset.view);
+    });
+  });
+
+  // Mobile More sheet
+  const sheetOverlay = document.getElementById('mobileSheetOverlay');
+  function openMobileSheet() { sheetOverlay.classList.remove('hidden'); }
+  window.closeMobileSheet = function() { sheetOverlay.classList.add('hidden'); };
+  document.getElementById('mobileMoreBtn').addEventListener('click', openMobileSheet);
+  sheetOverlay.addEventListener('click', window.closeMobileSheet);
+
+  // Sheet actions
+  const themeText = document.querySelector('.mobile-sheet-theme-text');
+  document.getElementById('mobileThemeBtn').addEventListener('click', () => {
+    Theme.toggle();
+    themeText.textContent = document.documentElement.classList.contains('dark') ? '亮色模式' : '暗色模式';
+    closeMobileSheet();
+  });
+  document.getElementById('mobileExportBtn').addEventListener('click', () => {
+    closeMobileSheet();
+    Export.showExportDialog();
+  });
+  document.getElementById('mobileImportBtn').addEventListener('click', () => {
+    closeMobileSheet();
+    document.getElementById('importFileInput').click();
   });
 
   await DB.init();
@@ -47,13 +82,12 @@
 
   Export.init();
 
-  // Cross-view sync: any db write refreshes data + visible view
   document.addEventListener('db-sync', async () => {
     const all = await DB.getAll('items');
     Calendar.items = all.filter(i => i.start);
     Todo.items = all;
     Stats.items = all;
-    if (currentView === 'todo' || currentView === 'worklog') return; // these refresh on switch
+    if (currentView === 'todo' || currentView === 'worklog') return;
     if (currentView === 'calendar' && Calendar.view !== 'month') Calendar.render();
     else if (currentView === 'stats') Stats.refresh();
   });

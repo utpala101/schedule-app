@@ -226,10 +226,182 @@ body::after {
 /* ── Sidebar nav icon spring ── */
 .nav-btn:hover svg { transform: scale(1.15); }
 
-@media (max-width: 640px) {
-  #sidebar { width: 3.5rem; }
-  #sidebar h1, #sidebar .nav-btn span, #sidebar .theme-text { display: none; }
-  #sidebar .nav-btn { justify-content: center; padding: 0.5rem; }
+/* ═══════════════════════════════════════
+   Mobile Responsive
+   ═══════════════════════════════════════ */
+
+/* ── Bottom Nav (mobile) ── */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 100;
+  background: #fefcf7;
+  border-top: 1px solid var(--color-border);
+  padding: 4px 0 env(safe-area-inset-bottom, 4px);
+  justify-content: space-around;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+.dark .mobile-nav {
+  background: #25201a;
+  border-top-color: #353025;
+}
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 8px;
+  min-width: 48px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.15s;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mobile-nav-btn svg { transition: color 0.15s; }
+.mobile-nav-btn span {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mobile-nav-btn.active {
+  color: var(--color-primary);
+}
+
+/* ── Slide-up Sheet ── */
+.mobile-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mobile-sheet {
+  background: #fefcf7;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 500px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 12px));
+  animation: sheetUp 0.3s ease-out;
+}
+.dark .mobile-sheet { background: #25201a; }
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.mobile-sheet-handle {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  margin: 0 auto 12px;
+}
+.mobile-sheet-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--color-text);
+}
+.mobile-sheet-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mobile-sheet-btn:hover { background: var(--color-primary-light); }
+.mobile-sheet-btn svg { color: var(--color-text-secondary); flex-shrink: 0; }
+
+/* ── Mobile breakpoint ── */
+@media (max-width: 768px) {
+  /* Hide sidebar, show bottom nav */
+  #sidebar { display: none; }
+  .mobile-nav { display: flex; }
+  #app { padding-bottom: 56px; }
+
+  /* Main content padding tighter */
+  #mainContent { padding: 12px !important; }
+
+  /* Full-screen modals on mobile */
+  #modalOverlay { align-items: flex-end; padding: 0; }
+  #modalContent {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    padding: 20px !important;
+    animation: modalSlideUp 0.3s ease-out;
+  }
+  @keyframes modalSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Calendar: smaller cells on mobile */
+  #calendarGrid { min-height: 200px; }
+  .cal-day-cell { min-height: 60px; padding: 3px; }
+  .cal-day-num { width: 22px; height: 22px; font-size: 11px; }
+  .cal-day-cell.today .cal-day-num { width: 22px; height: 22px; }
+  .cal-weekday-header { font-size: 9px; padding: 6px 2px; }
+  .cal-event { font-size: 9px; padding: 1px 4px; left: 1px; right: 1px; }
+  .cal-fold-bar { font-size: 8px; padding: 3px 4px; min-height: 18px; }
+  .cal-time-slot { min-height: 32px; }
+  .w-14 .cal-time-slot { padding-right: 4px !important; font-size: 9px; }
+
+  /* Calendar header compact */
+  #calendarHeader { flex-direction: column; align-items: stretch; gap: 8px; }
+  #calendarHeader > div:first-child { justify-content: center; }
+  #calendarHeader > div:last-child { justify-content: center; }
+
+  /* Stats grid single column */
+  #statsGrid { grid-template-columns: 1fr !important; }
+  .stat-card.lg\:col-span-2 { grid-column: span 1 !important; }
+
+  /* Todo: compact */
+  .todo-item { padding: 8px 10px; }
+  .quadrant { padding: 12px; min-height: 120px; }
+
+  /* Worklog: compact */
+  .worklog-item { padding: 10px 12px; }
+
+  /* Modal forms: compact */
+  #modalContent input,
+  #modalContent textarea,
+  #modalContent select { font-size: 16px; padding: 12px 14px; }
+  #modalContent [style*="max-width:640px"] { max-width: 100% !important; }
+  #modalContent .grid.grid-cols-2 { grid-template-columns: 1fr; }
+
+  /* Ensure bottom nav doesn't overlap content */
+  #syncSection, #storageStatus { display: none; }
+}
+
+@media (max-width: 480px) {
+  #mainContent { padding: 8px !important; }
+  #calTitle { font-size: 1.1rem; }
+  .mobile-nav-btn { padding: 4px 4px; min-width: 40px; }
+  .mobile-nav-btn span { font-size: 9px; }
+}
+
+/* ── Week view mobile ── */
+@media (max-width: 768px) {
+  .week-header-cell { font-size: 10px; padding: 8px 2px; }
 }
 
 /* ── Calendar Title ── */

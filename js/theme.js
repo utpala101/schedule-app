@@ -11,6 +11,11 @@ const Theme = {
     });
   },
 
+  toggle() {
+    const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    this.set(next);
+  },
+
   set(theme) {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('theme', theme);
