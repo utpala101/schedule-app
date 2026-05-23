@@ -10,11 +10,16 @@ const Calendar = {
   _workEnd: 22,
   _timeInterval: null,
   _dragInitDone: false,
+  _projects: [],
+  _tags: [],
 
   async init() {
     this._workStart = parseInt(localStorage.getItem('cal_workStart')) || 6;
     this._workEnd = parseInt(localStorage.getItem('cal_workEnd')) || 22;
     await this.loadItems();
+    this._extractFilterHistory();
+    this._populateFilters();
+    this._initFilters();
     this.render();
 
     document.getElementById('calTitle').onclick = (e) => {
@@ -53,6 +58,8 @@ const Calendar = {
   },
 
   render() {
+    this._extractFilterHistory();
+    this._populateFilters();
     const {start,end}=this.getViewStartEnd();
     this._recurClones=this._expandRecurring(this.items.filter(i=>i.recur?.type),Calendar._locDate(start),Calendar._locDate(end));
     this._startTimeIndicator();
@@ -69,7 +76,50 @@ const Calendar = {
     if (!s) { s = document.createElement('style'); s.id = 'cal-opacity-style'; document.head.appendChild(s); }
     s.textContent = '.cal-event:not(.cal-event-done){opacity:'+op+'!important}';
   },
-  _allItems() { return [...this.items.filter(i=>!i.recur?.type),...(this._recurClones||[])]; },
+  _allItems() { return [...this.items.filter(i=>!i.recur?.type),...(this._recurClones||[])].filter(i => this._matchesFilter(i)); },
+  _matchesFilter(item) {
+    const search = (document.getElementById('calSearch')?.value||'').trim().toLowerCase();
+    const project = document.getElementById('calProjectFilter')?.value||'';
+    const tag = document.getElementById('calTagFilter')?.value||'';
+    if (search && !(item.title||'').toLowerCase().includes(search) && !(item.notes||'').toLowerCase().includes(search)) return false;
+    if (project && (item.project||'') !== project) return false;
+    if (tag && !(item.tags||[]).includes(tag)) return false;
+    return true;
+  },
+  _extractFilterHistory() {
+    const ps = new Set(), ts = new Set();
+    for (const i of this.items) {
+      if (i.project) ps.add(i.project);
+      (i.tags||[]).forEach(t => ts.add(t));
+    }
+    this._projects = [...ps].sort();
+    this._tags = [...ts].sort();
+  },
+  _populateFilters() {
+    const projEl = document.getElementById('calProjectFilter');
+    const tagEl = document.getElementById('calTagFilter');
+    if (!projEl || !tagEl) return;
+    projEl.innerHTML = '<option value="">所有项目</option>'+this._projects.map(p => '<option value="'+Calendar._e(p)+'">'+Calendar._e(p)+'</option>').join('');
+    tagEl.innerHTML = '<option value="">所有标签</option>'+this._tags.map(t => '<option value="'+Calendar._e(t)+'">'+Calendar._e(t)+'</option>').join('');
+  },
+  _initFilters() {
+    const clearBtn = document.getElementById('calClearFilter');
+    const refresh = () => {
+      const active = !!(document.getElementById('calSearch')?.value||document.getElementById('calProjectFilter')?.value||document.getElementById('calTagFilter')?.value);
+      if (clearBtn) clearBtn.classList.toggle('hidden', !active);
+      this.render();
+    };
+    document.getElementById('calSearch')?.addEventListener('input', refresh);
+    document.getElementById('calProjectFilter')?.addEventListener('change', refresh);
+    document.getElementById('calTagFilter')?.addEventListener('change', refresh);
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      document.getElementById('calSearch').value='';
+      document.getElementById('calProjectFilter').value='';
+      document.getElementById('calTagFilter').value='';
+      clearBtn.classList.add('hidden');
+      this.render();
+    });
+  },
 
   getViewStartEnd() {
     const d = new Date(this.currentDate);
@@ -348,6 +398,7 @@ const Calendar = {
       <h3 class="text-lg font-bold mb-4">${titleText}</h3>
       <div class="space-y-3">
         <div><label class="block text-sm font-medium mb-1">标题</label><input id="fmTitle" value="${item?item.title:''}" placeholder="事件标题" oninput="document.getElementById('fmTitleError')?.classList.add('hidden')"><span id="fmTitleError" class="hidden text-xs text-red-500 mt-1 block">请输入标题</span></div>
+        <div><label class="block text-sm font-medium mb-1">项目</label><input id="fmProject" value="${item?Calendar._e(item.project||''):''}" placeholder="项目名称" list="projList"><datalist id="projList">${this._projects.map(p => `<option value="${Calendar._e(p)}">`).join('')}</datalist></div>
         <div class="grid grid-cols-2 gap-2">
           <div><label class="block text-sm font-medium mb-1">开始</label><input type="datetime-local" id="fmStart" value="${st}" onchange="Calendar._durDurToEnd()"></div>
           <div><label class="block text-sm font-medium mb-1">结束</label><input type="datetime-local" id="fmEnd" value="${en}" onchange="Calendar._durEndToDur()"></div>
@@ -447,6 +498,7 @@ const Calendar = {
     }
     return {
       title,
+      project: document.getElementById('fmProject').value.trim(),
       start,
       end,
       quadrant: document.getElementById('fmQuadrant').value ? parseInt(document.getElementById('fmQuadrant').value) : null,

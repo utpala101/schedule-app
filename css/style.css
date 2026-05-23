@@ -226,6 +226,70 @@ body::after {
 /* ── Sidebar nav icon spring ── */
 .nav-btn:hover svg { transform: scale(1.15); }
 
+/* ── Filter Bar ── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-input, .filter-select {
+  padding: 7px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 34px;
+}
+.filter-input {
+  flex: 1;
+  min-width: 160px;
+}
+.filter-select {
+  min-width: 110px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-input:focus, .filter-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(196, 82, 60, 0.10);
+}
+.filter-bar .filter-clear {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: none;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-bar .filter-clear:hover {
+  border-color: var(--color-border);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .filter-input, .filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .filter-bar .filter-clear {
+    align-self: flex-end;
+  }
+}
+
 /* ═══════════════════════════════════════
    Mobile Responsive
    ═══════════════════════════════════════ */
